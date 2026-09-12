@@ -8156,12 +8156,35 @@ option {
 }
 
 .manager-group-row-content strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   overflow: hidden;
   color: #dfe6f2;
   font-size: 0.76rem;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.manager-group-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  background: #62dfb0;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(98, 223, 176, 0.72);
+}
+
+.manager-group-row.is-attention .manager-group-status-dot {
+  background: #f1b963;
+  box-shadow: 0 0 10px rgba(241, 185, 99, 0.65);
+}
+
+.manager-group-row.is-critical .manager-group-status-dot {
+  background: #ef7489;
+  box-shadow: 0 0 12px rgba(239, 116, 137, 0.78);
 }
 
 .manager-group-row-content small {
@@ -8403,6 +8426,184 @@ option {
   min-width: 0;
   padding: 15px 16px;
   background: rgba(16, 23, 35, 0.36);
+}
+
+.manager-ai-summary-card {
+  overflow: hidden;
+  margin-bottom: 14px;
+  background: linear-gradient(145deg, rgba(22, 29, 42, 0.84), rgba(13, 18, 28, 0.76));
+  border: 1px solid rgba(154, 169, 197, 0.16);
+  border-radius: 20px;
+  box-shadow: var(--shadow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(20px);
+}
+
+.manager-ai-summary-card.is-critical {
+  border-color: rgba(239, 116, 137, 0.3);
+  box-shadow: var(--shadow-soft), 0 0 24px rgba(239, 116, 137, 0.08);
+}
+
+.manager-ai-summary-card.is-attention {
+  border-color: rgba(241, 185, 99, 0.24);
+}
+
+.manager-ai-summary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.manager-ai-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #7adbb5;
+  font-size: 0.64rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.manager-ai-state i {
+  width: 7px;
+  height: 7px;
+  background: #62dfb0;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(98, 223, 176, 0.68);
+}
+
+.manager-ai-summary-card.is-attention .manager-ai-state {
+  color: #efc476;
+}
+
+.manager-ai-summary-card.is-attention .manager-ai-state i {
+  background: #f1b963;
+  box-shadow: 0 0 10px rgba(241, 185, 99, 0.65);
+}
+
+.manager-ai-summary-card.is-critical .manager-ai-state {
+  color: #ff91a1;
+}
+
+.manager-ai-summary-card.is-critical .manager-ai-state i {
+  background: #ef7489;
+  box-shadow: 0 0 11px rgba(239, 116, 137, 0.75);
+}
+
+.manager-ai-trigger {
+  min-height: 31px;
+  padding: 6px 10px;
+  color: #cbd3ff;
+  background: rgba(105, 124, 210, 0.15);
+  border: 1px solid rgba(156, 173, 255, 0.18);
+  border-radius: 9px;
+  box-shadow: none;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.manager-ai-trigger:hover:not(:disabled) {
+  color: #fff;
+  background: rgba(105, 124, 210, 0.3);
+}
+
+.manager-ai-trigger:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.manager-ai-summary-empty,
+.manager-ai-summary-body {
+  padding: 17px 19px 19px;
+}
+
+.manager-ai-summary-empty strong,
+.manager-ai-summary-empty span {
+  display: block;
+}
+
+.manager-ai-summary-empty strong {
+  color: #e7edf7;
+  font-size: 0.78rem;
+}
+
+.manager-ai-summary-empty span {
+  margin-top: 5px;
+  color: #8996aa;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.manager-ai-summary-empty.is-error strong {
+  color: #ff91a1;
+}
+
+.manager-ai-summary-body > p {
+  margin: 0;
+  color: #dce5f0;
+  font-size: 0.79rem;
+  line-height: 1.62;
+}
+
+.manager-ai-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 13px;
+}
+
+.manager-ai-tags span {
+  padding: 5px 8px;
+  color: #c3ceff;
+  background: rgba(105, 124, 210, 0.13);
+  border: 1px solid rgba(156, 173, 255, 0.14);
+  border-radius: 7px;
+  font-size: 0.61rem;
+  font-weight: 700;
+}
+
+.manager-ai-action {
+  display: grid;
+  gap: 3px;
+  margin-top: 14px;
+  padding: 10px 11px;
+  background: rgba(99, 223, 176, 0.07);
+  border-left: 2px solid #62dfb0;
+  border-radius: 0 9px 9px 0;
+}
+
+.manager-ai-action strong {
+  color: #82ddb9;
+  font-size: 0.62rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.manager-ai-action span {
+  color: #cbd6e5;
+  font-size: 0.71rem;
+  line-height: 1.5;
+}
+
+.manager-ai-evidence {
+  margin-top: 13px;
+  color: #91a0b6;
+  font-size: 0.67rem;
+}
+
+.manager-ai-evidence summary {
+  cursor: pointer;
+  color: #aebaff;
+  font-weight: 700;
+}
+
+.manager-ai-evidence ul {
+  display: grid;
+  gap: 5px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+  line-height: 1.5;
 }
 
 .manager-detail-summary span,
@@ -9210,6 +9411,7 @@ html[data-theme="light"] .manager-status-widget strong {
 html[data-theme="light"] .manager-monitor-search,
 html[data-theme="light"] .manager-detail-summary,
 html[data-theme="light"] .manager-client-card,
+html[data-theme="light"] .manager-ai-summary-card,
 html[data-theme="light"] .manager-empty-card,
 html[data-theme="light"] .manager-unassigned-list,
 html[data-theme="light"] .manager-inline-empty,
@@ -9249,6 +9451,56 @@ html[data-theme="light"] .manager-client-card.is-attention::before {
 
 html[data-theme="light"] .manager-client-card.is-critical::before {
   background: #dc3f5b;
+}
+
+html[data-theme="light"] .manager-ai-summary-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(241, 246, 252, 0.86));
+  border-color: rgba(124, 139, 161, 0.18);
+  box-shadow: var(--shadow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+html[data-theme="light"] .manager-ai-summary-card.is-critical {
+  border-color: rgba(220, 63, 91, 0.28);
+}
+
+html[data-theme="light"] .manager-ai-summary-card.is-attention {
+  border-color: rgba(207, 140, 37, 0.25);
+}
+
+html[data-theme="light"] .manager-ai-summary-empty strong,
+html[data-theme="light"] .manager-ai-summary-body > p {
+  color: #26344b;
+}
+
+html[data-theme="light"] .manager-ai-summary-empty span,
+html[data-theme="light"] .manager-ai-action span,
+html[data-theme="light"] .manager-ai-evidence {
+  color: #58677d;
+}
+
+html[data-theme="light"] .manager-ai-tags span {
+  color: #2c62c9;
+  background: rgba(37, 99, 235, 0.07);
+  border-color: rgba(37, 99, 235, 0.14);
+}
+
+html[data-theme="light"] .manager-ai-action {
+  background: rgba(22, 163, 109, 0.07);
+  border-left-color: #16a36d;
+}
+
+html[data-theme="light"] .manager-ai-action strong {
+  color: #16845e;
+}
+
+html[data-theme="light"] .manager-ai-evidence summary,
+html[data-theme="light"] .manager-ai-trigger {
+  color: #2c62c9;
+}
+
+html[data-theme="light"] .manager-ai-trigger {
+  background: rgba(37, 99, 235, 0.07);
+  border-color: rgba(37, 99, 235, 0.16);
 }
 
 html[data-theme="light"] .manager-client-heading h3,

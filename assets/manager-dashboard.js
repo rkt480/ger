@@ -65,3 +65,82 @@
     });
   });
 })();
+
+(() => {
+  const buttons = document.querySelectorAll('[data-manager-analyze-pending], [data-manager-analyze-group]');
+  const csrfToken = document.querySelector("meta[name='csrf-token']")?.content || '';
+
+  if (buttons.length === 0 || !csrfToken) {
+    return;
+  }
+
+  const processAnalysis = async (button, silent = false) => {
+    if (button.disabled) {
+      return;
+    }
+
+    button.disabled = true;
+    const originalLabel = button.textContent;
+
+    if (!silent) {
+      button.textContent = 'Lendo mensagens…';
+    }
+
+    try {
+      const formData = new FormData();
+      const groupId = button.dataset.groupId || '';
+
+      if (groupId) {
+        formData.set('group_id', groupId);
+      } else {
+        formData.set('limit', '2');
+      }
+
+      const response = await fetch('./api/manager-analyze.php', {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': csrfToken, Accept: 'application/json' },
+        body: formData,
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || data.ok !== true) {
+        throw new Error(data.error || 'Não foi possível concluir a leitura da IA.');
+      }
+
+      const processed = Number(data.processed || 0);
+      const batchProcessed = Array.isArray(data.results)
+        ? data.results.reduce((total, item) => total + Number(item?.processed || 0), 0)
+        : processed;
+
+      if (batchProcessed > 0) {
+        window.location.reload();
+        return;
+      }
+
+      if (!silent) {
+        button.textContent = data.reason || 'Nenhuma mensagem pendente';
+      }
+    } catch (error) {
+      if (!silent) {
+        button.textContent = error.message || 'Falha na leitura da IA';
+      }
+    } finally {
+      if (document.body.contains(button) && !button.dataset.reloadPending) {
+        button.disabled = false;
+        if (button.textContent === 'Lendo mensagens…') {
+          button.textContent = originalLabel;
+        }
+      }
+    }
+  };
+
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => processAnalysis(button));
+  });
+
+  const pendingButton = document.querySelector('[data-manager-analyze-pending]');
+
+  if (pendingButton && document.visibilityState === 'visible') {
+    window.setTimeout(() => processAnalysis(pendingButton, true), 900);
+  }
+})();

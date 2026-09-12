@@ -693,7 +693,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?= $openAiApiKeyConfigured ? 'Configurado' : 'Inativo' ?>
                   </span>
                 </header>
-                <p class="integration-description">Usada somente pelo servidor para analisar conversas e gerar orientações do coach.</p>
+                <p class="integration-description">Usada somente pelo servidor para analisar conversas, orientar o coach e monitorar os grupos dos clientes.</p>
 
                 <form class="flow-form" method="post" enctype="multipart/form-data" autocomplete="off">
                   <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
@@ -715,6 +715,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Prompt e metodologia do coach
                     <textarea name="openai_coach_prompt" rows="9" maxlength="12000" placeholder="Defina como o coach deve avaliar as negociações..." spellcheck="true"><?= htmlspecialchars($openAiCoachPrompt) ?></textarea>
                   </label>
+                  <small class="settings-help">Este prompt também orienta a leitura dos grupos monitorados. A IA usará as mensagens como evidência e retornará um resumo para o gestor.</small>
                   <label>
                     PDF de apoio
                     <input type="file" name="openai_coach_document" accept="application/pdf,.pdf" />

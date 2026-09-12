@@ -33,8 +33,21 @@ necessários para a tela e nunca recebe tokens, segredos ou credenciais.
 
 O webhook valida o evento, identifica mensagens de grupo, salva grupo,
 participante e mensagem em tabelas próprias e evita duplicação pelo ID da
-mensagem. A análise de IA deve ser executada depois, em uma fila ou ação
-autorizada, para que a resposta do webhook permaneça rápida e confiável.
+mensagem. Depois que o grupo é vinculado a um cliente, as mensagens pendentes
+são analisadas em lote pela OpenAI usando o prompt cadastrado em Configurações.
+O resultado fica salvo como resumo e, quando a IA identifica um problema, como
+um alerta operacional que deixa o grupo com indicador vermelho. Quando a
+análise conclui que está tudo bem, o indicador fica verde.
+
+O painel dispara automaticamente a análise enquanto estiver aberto. Para
+processar mensagens mesmo sem o painel aberto, configure um cron de um minuto
+para executar:
+
+```cron
+* * * * * /Applications/XAMPP/xamppfiles/bin/php /Applications/XAMPP/xamppfiles/htdocs/gerente/run-manager-analysis.php >/dev/null 2>&1
+```
+
+Em produção, substitua os caminhos pelo PHP e pelo diretório do servidor.
 
 ## Estrutura operacional
 

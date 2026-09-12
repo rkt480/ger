@@ -964,9 +964,37 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
             g.last_message_at,
             c.name AS client_name,
             COUNT(DISTINCT m.id) AS message_count,
-            SUM(CASE WHEN m.analysis_status = "pending" THEN 1 ELSE 0 END) AS pending_analysis,
+            SUM(CASE WHEN m.analysis_status IN ("pending", "processing") THEN 1 ELSE 0 END) AS pending_analysis,
             COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") THEN a.id END) AS open_alerts,
             COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") AND a.severity = "critical" THEN a.id END) AS critical_alerts,
+            (
+                SELECT ma.status
+                FROM manager_ai_analyses ma
+                WHERE ma.group_id = g.id
+                ORDER BY ma.created_at DESC, ma.id DESC
+                LIMIT 1
+            ) AS latest_analysis_status,
+            (
+                SELECT ma.severity
+                FROM manager_ai_analyses ma
+                WHERE ma.group_id = g.id
+                ORDER BY ma.created_at DESC, ma.id DESC
+                LIMIT 1
+            ) AS latest_analysis_severity,
+            (
+                SELECT ma.summary
+                FROM manager_ai_analyses ma
+                WHERE ma.group_id = g.id AND ma.status = "completed"
+                ORDER BY ma.created_at DESC, ma.id DESC
+                LIMIT 1
+            ) AS latest_ai_summary,
+            (
+                SELECT ma.created_at
+                FROM manager_ai_analyses ma
+                WHERE ma.group_id = g.id
+                ORDER BY ma.created_at DESC, ma.id DESC
+                LIMIT 1
+            ) AS latest_analysis_at,
             (
                 SELECT COALESCE(NULLIF(m2.body, ""), CONCAT("[", m2.message_type, "]"))
                 FROM manager_group_messages m2
@@ -1007,7 +1035,10 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
             (SELECT COUNT(*) FROM manager_clients WHERE active = 1) AS clients,
             (SELECT COUNT(*) FROM manager_groups WHERE active = 1) AS groups,
             (SELECT COUNT(*) FROM manager_group_messages) AS messages,
-            (SELECT COUNT(*) FROM manager_group_messages WHERE analysis_status = "pending") AS pending_analysis,
+            (SELECT COUNT(*)
+             FROM manager_group_messages m
+             INNER JOIN manager_groups g ON g.id = m.group_id
+             WHERE m.analysis_status IN ("pending", "processing") AND g.active = 1 AND g.client_id IS NOT NULL) AS pending_analysis,
             (SELECT COUNT(*) FROM manager_alerts WHERE status IN ("open", "acknowledged", "in_progress")) AS open_alerts,
             (SELECT COUNT(*) FROM manager_alerts WHERE status IN ("open", "acknowledged", "in_progress") AND severity = "critical") AS critical_alerts
     ');
@@ -1198,4 +1229,30 @@ function crm_manager_monitor_read_group_alerts(PDO $pdo, int $groupId): array
     $query->execute(['group_id' => $groupId]);
 
     return $query->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function crm_manager_monitor_read_latest_group_analysis(PDO $pdo, int $groupId): ?array
+{
+    crm_manager_monitor_ensure_schema($pdo);
+    $query = $pdo->prepare(
+        'SELECT id, group_id, message_id, model, prompt_version, status, severity,
+                categories, summary, evidence, confidence, result_json, error_message, created_at
+         FROM manager_ai_analyses
+         WHERE group_id = :group_id
+         ORDER BY created_at DESC, id DESC
+         LIMIT 1'
+    );
+    $query->execute(['group_id' => $groupId]);
+    $analysis = $query->fetch(PDO::FETCH_ASSOC);
+
+    if (!is_array($analysis)) {
+        return null;
+    }
+
+    foreach (['categories', 'evidence', 'result_json'] as $key) {
+        $decoded = json_decode((string) ($analysis[$key] ?? ''), true);
+        $analysis[$key . '_decoded'] = is_array($decoded) ? $decoded : [];
+    }
+
+    return $analysis;
 }

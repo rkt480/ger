@@ -26,6 +26,7 @@ if ($group === null) {
 
 $messages = crm_manager_monitor_read_group_messages($pdo, $groupId);
 $alerts = crm_manager_monitor_read_group_alerts($pdo, $groupId);
+$latestAnalysis = crm_manager_monitor_read_latest_group_analysis($pdo, $groupId);
 $openAlerts = array_values(array_filter(
     $alerts,
     static fn(array $alert): bool => in_array((string) ($alert['status'] ?? ''), ['open', 'acknowledged', 'in_progress'], true)
@@ -80,17 +81,37 @@ $statusLabel = static function (string $status): string {
 $clientName = trim((string) ($group['client_name'] ?? ''));
 $groupName = trim((string) ($group['name'] ?? 'Grupo sem nome'));
 $groupName = $groupName !== '' ? $groupName : 'Grupo sem nome';
-$groupState = count($criticalAlerts) > 0 ? 'critical' : (count($openAlerts) > 0 ? 'attention' : 'normal');
+$latestAnalysisStatus = (string) ($latestAnalysis['status'] ?? '');
+$latestAnalysisSeverity = (string) ($latestAnalysis['severity'] ?? '');
+$pendingAnalysisCount = count(array_filter(
+    $messages,
+    static fn(array $message): bool => in_array((string) ($message['analysis_status'] ?? ''), ['pending', 'processing'], true)
+));
+$groupState = $latestAnalysisStatus === 'completed' && $latestAnalysisSeverity !== '' && $latestAnalysisSeverity !== 'none'
+    ? 'critical'
+    : (($latestAnalysisStatus === 'failed' || $pendingAnalysisCount > 0)
+        ? 'attention'
+        : (count($criticalAlerts) > 0 ? 'critical' : (count($openAlerts) > 0 ? 'attention' : 'normal')));
+$analysisCategories = is_array($latestAnalysis['categories_decoded'] ?? null) ? $latestAnalysis['categories_decoded'] : [];
+$analysisEvidence = is_array($latestAnalysis['evidence_decoded'] ?? null) ? $latestAnalysis['evidence_decoded'] : [];
+$analysisResult = is_array($latestAnalysis['result_json_decoded'] ?? null) ? $latestAnalysis['result_json_decoded'] : [];
+$analysisAction = trim((string) ($analysisResult['recommended_action'] ?? ''));
+$analysisStatusLabel = $pendingAnalysisCount > 0
+    ? 'Aguardando análise'
+    : ($latestAnalysisStatus === 'completed'
+        ? ($latestAnalysisSeverity !== '' && $latestAnalysisSeverity !== 'none' ? 'Atenção identificada' : 'Tudo bem')
+        : ($latestAnalysisStatus === 'failed' ? 'Análise com erro' : 'Aguardando análise'));
 ?>
 <!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="<?= htmlspecialchars(crm_csrf_token()) ?>" />
     <meta name="theme-color" content="#070a10" />
     <title><?= htmlspecialchars($groupName) ?> | Monitoramento</title>
     <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v7" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v8" />
   </head>
   <body class="settings-page manager-monitor-page manager-group-page">
     <div class="app-shell">
@@ -145,7 +166,31 @@ $groupState = count($criticalAlerts) > 0 ? 'critical' : (count($openAlerts) > 0 
             <div><span>Mensagens armazenadas</span><strong><?= count($messages) ?></strong></div>
             <div><span>Alertas abertos</span><strong><?= count($openAlerts) ?></strong></div>
             <div><span>Última atividade</span><strong><?= htmlspecialchars($formatDate($group['last_message_at'] ?? '', true)) ?></strong></div>
-            <div><span>Análise</span><strong><?= count(array_filter($messages, static fn(array $message): bool => (string) ($message['analysis_status'] ?? '') === 'pending')) ?> pendente<?= count(array_filter($messages, static fn(array $message): bool => (string) ($message['analysis_status'] ?? '') === 'pending')) === 1 ? '' : 's' ?></strong></div>
+            <div><span>Análise</span><strong><?= htmlspecialchars($analysisStatusLabel) ?></strong></div>
+          </section>
+
+          <section class="manager-ai-summary-card is-<?= htmlspecialchars($groupState) ?>" aria-labelledby="manager-ai-summary-title">
+            <header class="manager-detail-card-header">
+              <div><p class="eyebrow">Leitura automática</p><h2 id="manager-ai-summary-title">Resumo da IA</h2></div>
+              <div class="manager-ai-summary-actions">
+                <span class="manager-ai-state"><i></i><?= htmlspecialchars($analysisStatusLabel) ?></span>
+                <?php if ($pendingAnalysisCount > 0 || $latestAnalysisStatus === 'failed' || $latestAnalysis === null): ?>
+                  <button type="button" class="manager-ai-trigger" data-manager-analyze-group data-group-id="<?= (int) $groupId ?>">Analisar agora</button>
+                <?php endif; ?>
+              </div>
+            </header>
+            <?php if ($latestAnalysis === null): ?>
+              <div class="manager-ai-summary-empty"><strong>As mensagens deste grupo ainda aguardam leitura.</strong><span>A análise seguirá o prompt cadastrado em Configurações.</span></div>
+            <?php elseif ($latestAnalysisStatus === 'failed'): ?>
+              <div class="manager-ai-summary-empty is-error"><strong>Não foi possível concluir a última leitura.</strong><span><?= htmlspecialchars((string) ($latestAnalysis['error_message'] ?? 'Tente novamente quando a integração estiver disponível.')) ?></span></div>
+            <?php else: ?>
+              <div class="manager-ai-summary-body">
+                <p><?= nl2br(htmlspecialchars((string) ($latestAnalysis['summary'] ?? 'Sem resumo disponível.'))) ?></p>
+                <?php if ($analysisCategories !== []): ?><div class="manager-ai-tags"><?php foreach ($analysisCategories as $category): ?><span><?= htmlspecialchars((string) $category) ?></span><?php endforeach; ?></div><?php endif; ?>
+                <?php if ($analysisAction !== ''): ?><div class="manager-ai-action"><strong>Próximo passo</strong><span><?= nl2br(htmlspecialchars($analysisAction)) ?></span></div><?php endif; ?>
+                <?php if ($analysisEvidence !== []): ?><details class="manager-ai-evidence"><summary>Ver evidências consideradas</summary><ul><?php foreach ($analysisEvidence as $evidence): ?><li><?= nl2br(htmlspecialchars((string) $evidence)) ?></li><?php endforeach; ?></ul></details><?php endif; ?>
+              </div>
+            <?php endif; ?>
           </section>
 
           <div class="manager-detail-grid">
@@ -203,7 +248,7 @@ $groupState = count($criticalAlerts) > 0 ? 'critical' : (count($openAlerts) > 0 
       </div>
     </div>
     <script src="./assets/crm.js?v=20260911-coach-v5"></script>
-    <script src="./assets/manager-dashboard.js?v=20260912-theme-v3"></script>
+    <script src="./assets/manager-dashboard.js?v=20260912-theme-v4"></script>
     <script src="./assets/crm-navigation.js?v=20260812-fast-navigation-v3"></script>
   </body>
 </html>

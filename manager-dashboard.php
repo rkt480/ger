@@ -78,8 +78,26 @@ $initials = static function (string $name): string {
 
     return strtoupper($letters !== '' ? $letters : 'C');
 };
-$monitorStatus = static function (int $criticalAlerts, int $openAlerts): string {
-    return $criticalAlerts > 0 ? 'critical' : ($openAlerts > 0 ? 'attention' : 'normal');
+$groupMonitorStatus = static function (array $group): string {
+    $analysisStatus = (string) ($group['latest_analysis_status'] ?? '');
+    $analysisSeverity = (string) ($group['latest_analysis_severity'] ?? '');
+
+    if ($analysisStatus === 'completed' && $analysisSeverity !== '' && $analysisSeverity !== 'none') {
+        return 'critical';
+    }
+
+    if ($analysisStatus === 'failed' || (int) ($group['pending_analysis'] ?? 0) > 0) {
+        return 'attention';
+    }
+
+    return (int) ($group['critical_alerts'] ?? 0) > 0
+        ? 'critical'
+        : ((int) ($group['open_alerts'] ?? 0) > 0 ? 'attention' : 'normal');
+};
+$clientMonitorStatus = static function (array $client): string {
+    return (int) ($client['critical_alerts'] ?? 0) > 0
+        ? 'critical'
+        : ((int) ($client['open_alerts'] ?? 0) > 0 ? 'attention' : 'normal');
 };
 ?>
 <!doctype html>
@@ -91,7 +109,7 @@ $monitorStatus = static function (int $criticalAlerts, int $openAlerts): string 
     <meta name="theme-color" content="#070a10" />
     <title>Monitoramento | Gerente</title>
     <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v7" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v8" />
   </head>
   <body class="settings-page manager-monitor-page">
     <div class="app-shell">
@@ -174,6 +192,7 @@ $monitorStatus = static function (int $criticalAlerts, int $openAlerts): string 
               <span><strong><?= $stats['clients'] ?></strong> clientes</span>
               <span><strong><?= $stats['groups'] ?></strong> grupos</span>
               <span><strong><?= $stats['pending_analysis'] ?></strong> pendentes para IA</span>
+              <?php if ($stats['pending_analysis'] > 0): ?><button type="button" class="manager-ai-trigger" data-manager-analyze-pending>Processar IA</button><?php endif; ?>
             </div>
           </section>
 
@@ -201,7 +220,7 @@ $monitorStatus = static function (int $criticalAlerts, int $openAlerts): string 
                   <?php
                     $clientId = (int) ($client['id'] ?? 0);
                     $clientGroups = $groupsByClient[$clientId] ?? [];
-                    $clientStatus = $monitorStatus((int) ($client['critical_alerts'] ?? 0), (int) ($client['open_alerts'] ?? 0));
+                    $clientStatus = $clientMonitorStatus($client);
                   ?>
                   <article class="manager-client-card is-<?= htmlspecialchars($clientStatus) ?>">
                     <header class="manager-client-card-header">
@@ -223,12 +242,21 @@ $monitorStatus = static function (int $criticalAlerts, int $openAlerts): string 
                         <p class="manager-no-groups">Nenhum grupo vinculado.</p>
                       <?php else: ?>
                         <?php foreach ($clientGroups as $group): ?>
-                          <?php $groupStatus = $monitorStatus((int) ($group['critical_alerts'] ?? 0), (int) ($group['open_alerts'] ?? 0)); ?>
+                          <?php
+                            $groupStatus = $groupMonitorStatus($group);
+                            $groupSummary = trim((string) ($group['latest_ai_summary'] ?? ''));
+                            $groupSummary = $groupSummary !== ''
+                              ? 'IA: ' . $groupSummary
+                              : $shortText($group['last_message_preview'] ?? '');
+                            $indicatorLabel = $groupStatus === 'critical'
+                              ? 'A IA identificou um problema neste grupo'
+                              : ($groupStatus === 'attention' ? 'Análise pendente ou indisponível' : 'A IA não identificou problemas');
+                          ?>
                           <a class="manager-group-row is-<?= htmlspecialchars($groupStatus) ?>" href="manager-group.php?id=<?= (int) $group['id'] ?>">
                             <span class="manager-group-row-icon" aria-hidden="true">⌁</span>
                             <span class="manager-group-row-content">
-                              <strong><?= htmlspecialchars((string) $group['name']) ?></strong>
-                              <small><?= htmlspecialchars($shortText($group['last_message_preview'] ?? '')) ?></small>
+                              <strong><span class="manager-group-status-dot" title="<?= htmlspecialchars($indicatorLabel) ?>" aria-label="<?= htmlspecialchars($indicatorLabel) ?>"></span><?= htmlspecialchars((string) $group['name']) ?></strong>
+                              <small><?= htmlspecialchars($shortText($groupSummary)) ?></small>
                             </span>
                             <span class="manager-group-row-meta"><b><?= (int) ($group['open_alerts'] ?? 0) ?></b><time><?= htmlspecialchars($formatDate($group['last_message_at'] ?? '')) ?></time></span>
                           </a>
@@ -298,7 +326,7 @@ $monitorStatus = static function (int $criticalAlerts, int $openAlerts): string 
       </div>
     </div>
     <script src="./assets/crm.js?v=20260911-coach-v5"></script>
-    <script src="./assets/manager-dashboard.js?v=20260912-theme-v3"></script>
+    <script src="./assets/manager-dashboard.js?v=20260912-theme-v4"></script>
     <script src="./assets/crm-navigation.js?v=20260812-fast-navigation-v3"></script>
   </body>
 </html>
