@@ -85,12 +85,12 @@ $groupMonitorStatus = static function (array $group): string {
         return 'attention';
     }
 
-    return (int) ($group['critical_alerts'] ?? 0) > 0
+    return (int) ($group['priority_alerts'] ?? 0) > 0
         ? 'critical'
         : ((int) ($group['open_alerts'] ?? 0) > 0 ? 'attention' : 'normal');
 };
 $clientMonitorStatus = static function (array $client): string {
-    return (int) ($client['critical_alerts'] ?? 0) > 0
+    return (int) ($client['priority_alerts'] ?? 0) > 0
         ? 'critical'
         : ((int) ($client['open_alerts'] ?? 0) > 0 ? 'attention' : 'normal');
 };
@@ -104,7 +104,7 @@ $clientMonitorStatus = static function (array $client): string {
     <meta name="theme-color" content="#070a10" />
     <title>Monitoramento | Gerente</title>
     <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v11" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20260912-contrast-v1" />
   </head>
   <body class="settings-page manager-monitor-page">
     <div class="app-shell">
@@ -172,7 +172,7 @@ $clientMonitorStatus = static function (array $client): string {
             <aside class="manager-status-widget">
               <div class="manager-status-orb" aria-hidden="true"><span>✦</span></div>
               <p class="manager-widget-kicker">Status da operação</p>
-              <strong><?= $stats['critical_alerts'] > 0 ? 'Atenção necessária' : 'Monitoramento ativo' ?></strong>
+              <strong><?= $stats['priority_alerts'] > 0 ? 'Atenção necessária' : 'Monitoramento ativo' ?></strong>
               <span><?= $stats['open_alerts'] ?> alerta<?= $stats['open_alerts'] === 1 ? '' : 's' ?> aberto<?= $stats['open_alerts'] === 1 ? '' : 's' ?></span>
             </aside>
           </section>

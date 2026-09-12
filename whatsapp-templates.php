@@ -82,7 +82,7 @@ $bodyVariables = crm_whatsapp_template_variables((string) ($currentTemplate['bod
     <meta name="csrf-token" content="<?= htmlspecialchars(crm_csrf_token()) ?>" />
     <title>Templates WhatsApp | CRM</title>
     <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v7" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20260912-contrast-v1" />
   </head>
   <body class="wa-templates-page">
     <div class="app-shell">

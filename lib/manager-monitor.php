@@ -949,6 +949,7 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
             COUNT(DISTINCT g.id) AS group_count,
             COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") THEN a.id END) AS open_alerts,
             COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") AND a.severity = "critical" THEN a.id END) AS critical_alerts,
+            COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") AND a.severity IN ("high", "critical") THEN a.id END) AS priority_alerts,
             MAX(g.last_message_at) AS last_message_at
         FROM manager_clients c
         LEFT JOIN manager_groups g ON g.client_id = c.id AND g.active = 1
@@ -956,7 +957,7 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
         WHERE c.active = 1
           AND (:has_search = 0 OR c.name LIKE :search_name OR c.external_ref LIKE :search_ref)
         GROUP BY c.id, c.name, c.external_ref, c.active
-        ORDER BY critical_alerts DESC, open_alerts DESC, c.name ASC';
+        ORDER BY priority_alerts DESC, critical_alerts DESC, open_alerts DESC, c.name ASC';
     $clientQuery = $pdo->prepare($clientSql);
     $clientQuery->bindValue(':has_search', $hasSearch ? 1 : 0, PDO::PARAM_INT);
     $clientQuery->bindValue(':search_name', $searchLike, PDO::PARAM_STR);
@@ -977,6 +978,7 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
             SUM(CASE WHEN m.analysis_status IN ("pending", "processing") THEN 1 ELSE 0 END) AS pending_analysis,
             COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") THEN a.id END) AS open_alerts,
             COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") AND a.severity = "critical" THEN a.id END) AS critical_alerts,
+            COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") AND a.severity IN ("high", "critical") THEN a.id END) AS priority_alerts,
             (
                 SELECT a2.id
                 FROM manager_alerts a2
@@ -1039,7 +1041,7 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
               OR g.external_group_id LIKE :search_external
           )
         GROUP BY g.id, g.client_id, g.provider_number_id, g.external_group_id, g.name, g.last_message_at, g.created_at, c.name
-        ORDER BY critical_alerts DESC, open_alerts DESC, COALESCE(g.last_message_at, g.created_at) DESC, g.name ASC';
+        ORDER BY priority_alerts DESC, critical_alerts DESC, open_alerts DESC, COALESCE(g.last_message_at, g.created_at) DESC, g.name ASC';
     $groupQuery = $pdo->prepare($groupSql);
     $groupQuery->bindValue(':has_search', $hasSearch ? 1 : 0, PDO::PARAM_INT);
     $groupQuery->bindValue(':search_group', $searchLike, PDO::PARAM_STR);
@@ -1058,7 +1060,8 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
              INNER JOIN manager_groups g ON g.id = m.group_id
              WHERE m.analysis_status IN ("pending", "processing") AND g.active = 1 AND g.client_id IS NOT NULL) AS pending_analysis,
             (SELECT COUNT(*) FROM manager_alerts WHERE status IN ("open", "acknowledged", "in_progress")) AS open_alerts,
-            (SELECT COUNT(*) FROM manager_alerts WHERE status IN ("open", "acknowledged", "in_progress") AND severity = "critical") AS critical_alerts
+            (SELECT COUNT(*) FROM manager_alerts WHERE status IN ("open", "acknowledged", "in_progress") AND severity = "critical") AS critical_alerts,
+            (SELECT COUNT(*) FROM manager_alerts WHERE status IN ("open", "acknowledged", "in_progress") AND severity IN ("high", "critical")) AS priority_alerts
     ');
     $stats = $statsQuery->fetch(PDO::FETCH_ASSOC) ?: [];
 
@@ -1078,6 +1081,7 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
             'pending_analysis' => (int) ($stats['pending_analysis'] ?? 0),
             'open_alerts' => (int) ($stats['open_alerts'] ?? 0),
             'critical_alerts' => (int) ($stats['critical_alerts'] ?? 0),
+            'priority_alerts' => (int) ($stats['priority_alerts'] ?? 0),
         ],
     ];
 }

@@ -43,7 +43,7 @@ $isNew = $currentForm === null;
     <meta name="csrf-token" content="<?= htmlspecialchars(crm_csrf_token()) ?>" />
     <title>Formulários | CRM</title>
     <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v7" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20260912-contrast-v1" />
   </head>
   <body>
     <div class="app-shell">

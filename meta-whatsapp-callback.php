@@ -35,7 +35,7 @@ if ($received !== []) {
     <meta name="robots" content="noindex,nofollow" />
     <title>Cadastro WhatsApp | MM Design</title>
     <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v7" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20260912-contrast-v1" />
   </head>
   <body>
     <main class="workspace" style="min-height: 100vh; padding: 32px;">

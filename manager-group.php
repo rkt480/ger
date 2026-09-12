@@ -35,6 +35,10 @@ $criticalAlerts = array_values(array_filter(
     $openAlerts,
     static fn(array $alert): bool => (string) ($alert['severity'] ?? '') === 'critical'
 ));
+$priorityAlerts = array_values(array_filter(
+    $openAlerts,
+    static fn(array $alert): bool => in_array((string) ($alert['severity'] ?? ''), ['high', 'critical'], true)
+));
 $hasOpenAlerts = $openAlerts !== [];
 
 $formatDate = static function (mixed $value, bool $withYear = false): string {
@@ -90,7 +94,7 @@ $pendingAnalysisCount = count(array_filter(
 ));
 $groupState = ($latestAnalysisStatus === 'failed' || $pendingAnalysisCount > 0)
     ? 'attention'
-    : ($hasOpenAlerts ? (count($criticalAlerts) > 0 ? 'critical' : 'attention') : 'normal');
+    : ($hasOpenAlerts ? (count($priorityAlerts) > 0 ? 'critical' : 'attention') : 'normal');
 $analysisCategories = is_array($latestAnalysis['categories_decoded'] ?? null) ? $latestAnalysis['categories_decoded'] : [];
 $analysisEvidence = is_array($latestAnalysis['evidence_decoded'] ?? null) ? $latestAnalysis['evidence_decoded'] : [];
 $analysisResult = is_array($latestAnalysis['result_json_decoded'] ?? null) ? $latestAnalysis['result_json_decoded'] : [];
@@ -112,7 +116,7 @@ $analysisStatusLabel = $pendingAnalysisCount > 0
     <meta name="theme-color" content="#070a10" />
     <title><?= htmlspecialchars($groupName) ?> | Monitoramento</title>
     <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v11" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20260912-contrast-v1" />
   </head>
   <body class="settings-page manager-monitor-page manager-group-page">
     <div class="app-shell">
@@ -226,7 +230,7 @@ $analysisStatusLabel = $pendingAnalysisCount > 0
             <aside class="manager-alerts-card" aria-labelledby="alerts-title">
               <header class="manager-detail-card-header">
                 <div><p class="eyebrow">Análise operacional</p><h2 id="alerts-title">Alertas do grupo</h2></div>
-                <span class="manager-alert-count is-<?= count($criticalAlerts) > 0 ? 'critical' : 'normal' ?>"><?= count($openAlerts) ?></span>
+                <span class="manager-alert-count is-<?= count($priorityAlerts) > 0 ? 'critical' : 'normal' ?>"><?= count($openAlerts) ?></span>
               </header>
               <?php if ($alerts === []): ?>
                 <div class="manager-detail-empty manager-alert-empty"><span aria-hidden="true">✦</span><h3>Nenhum alerta gerado</h3><p>Quando a IA identificar reclamação, custo alto ou relatório ausente, o alerta ficará visível neste painel.</p></div>
