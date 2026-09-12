@@ -429,6 +429,7 @@ CREATE TABLE IF NOT EXISTS publi_ai_crm.manager_alerts (
   assigned_user_id INT NULL,
   resolved_by_user_id INT NULL,
   resolved_at DATETIME NULL,
+  resolution_note TEXT NULL,
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
   INDEX idx_manager_alerts_status (status, severity, created_at),

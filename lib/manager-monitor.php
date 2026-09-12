@@ -125,6 +125,7 @@ function crm_manager_monitor_ensure_schema(PDO $pdo): void
             assigned_user_id INT NULL,
             resolved_by_user_id INT NULL,
             resolved_at DATETIME NULL,
+            resolution_note TEXT NULL,
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL,
             INDEX idx_manager_alerts_status (status, severity, created_at),
@@ -165,6 +166,15 @@ function crm_manager_monitor_ensure_schema(PDO $pdo): void
 
     foreach ($statements as $statement) {
         $pdo->exec($statement);
+    }
+
+    // Existing installations already have manager_alerts, so keep the
+    // resolution note backwards-compatible without requiring a manual SQL
+    // migration after deployment.
+    $resolutionNoteColumn = $pdo->query("SHOW COLUMNS FROM manager_alerts LIKE 'resolution_note'");
+
+    if (!$resolutionNoteColumn->fetch(PDO::FETCH_ASSOC)) {
+        $pdo->exec('ALTER TABLE manager_alerts ADD COLUMN resolution_note TEXT NULL AFTER resolved_at');
     }
 
     $ensured = true;
@@ -968,6 +978,14 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
             COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") THEN a.id END) AS open_alerts,
             COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") AND a.severity = "critical" THEN a.id END) AS critical_alerts,
             (
+                SELECT a2.id
+                FROM manager_alerts a2
+                WHERE a2.group_id = g.id
+                  AND a2.status IN ("open", "acknowledged", "in_progress")
+                ORDER BY FIELD(a2.severity, "critical", "high", "medium", "low"), a2.created_at DESC, a2.id DESC
+                LIMIT 1
+            ) AS latest_open_alert_id,
+            (
                 SELECT ma.status
                 FROM manager_ai_analyses ma
                 WHERE ma.group_id = g.id
@@ -1220,7 +1238,7 @@ function crm_manager_monitor_read_group_alerts(PDO $pdo, int $groupId): array
 {
     crm_manager_monitor_ensure_schema($pdo);
     $query = $pdo->prepare(
-        'SELECT id, alert_type, severity, status, title, description, evidence, confidence, created_at, updated_at
+        'SELECT id, alert_type, severity, status, title, description, evidence, confidence, resolved_at, resolution_note, created_at, updated_at
          FROM manager_alerts
          WHERE group_id = :group_id
          ORDER BY FIELD(status, "open", "acknowledged", "in_progress", "resolved"), created_at DESC
@@ -1229,6 +1247,100 @@ function crm_manager_monitor_read_group_alerts(PDO $pdo, int $groupId): array
     $query->execute(['group_id' => $groupId]);
 
     return $query->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function crm_manager_monitor_read_group_resolutions(PDO $pdo, int $groupId, int $limit = 5): array
+{
+    crm_manager_monitor_ensure_schema($pdo);
+    $limit = max(1, min($limit, 20));
+    $query = $pdo->prepare(
+        'SELECT id, title, description, evidence, resolution_note, resolved_at
+         FROM manager_alerts
+         WHERE group_id = :group_id
+           AND alert_type = "ai_group_status"
+           AND status = "resolved"
+           AND resolution_note IS NOT NULL
+           AND resolution_note <> ""
+         ORDER BY resolved_at DESC, id DESC
+         LIMIT ' . $limit
+    );
+    $query->execute(['group_id' => $groupId]);
+
+    return $query->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function crm_manager_monitor_resolve_alert(PDO $pdo, int $alertId, ?int $userId = null, string $resolutionNote = ''): array
+{
+    crm_manager_monitor_ensure_schema($pdo);
+
+    if ($alertId <= 0) {
+        throw new InvalidArgumentException('Alerta inválido.');
+    }
+
+    $query = $pdo->prepare(
+        'SELECT id, group_id, status
+         FROM manager_alerts
+         WHERE id = :id AND alert_type = "ai_group_status"
+         LIMIT 1'
+    );
+    $query->execute(['id' => $alertId]);
+    $alert = $query->fetch(PDO::FETCH_ASSOC);
+
+    if (!is_array($alert)) {
+        throw new InvalidArgumentException('Alerta não encontrado.');
+    }
+
+    $status = (string) ($alert['status'] ?? '');
+
+    if ($status === 'resolved') {
+        return [
+            'alert_id' => (int) $alert['id'],
+            'group_id' => (int) $alert['group_id'],
+            'already_resolved' => true,
+        ];
+    }
+
+    if (!in_array($status, ['open', 'acknowledged', 'in_progress'], true)) {
+        throw new InvalidArgumentException('Este alerta não pode ser resolvido neste estado.');
+    }
+
+    $resolutionNote = crm_manager_monitor_limit($resolutionNote, 2000);
+    $resolutionNote = $resolutionNote !== '' ? $resolutionNote : 'Resolvido pelo gestor.';
+    $now = date('Y-m-d H:i:s');
+    $update = $pdo->prepare(
+        'UPDATE manager_alerts
+         SET status = "resolved",
+             resolved_by_user_id = :resolved_by_user_id,
+             resolved_at = :resolved_at,
+             resolution_note = :resolution_note,
+             updated_at = :updated_at
+         WHERE id = :id
+           AND status IN ("open", "acknowledged", "in_progress")'
+    );
+    $update->execute([
+        'resolved_by_user_id' => $userId !== null && $userId > 0 ? $userId : null,
+        'resolved_at' => $now,
+        'resolution_note' => $resolutionNote,
+        'updated_at' => $now,
+        'id' => $alertId,
+    ]);
+
+    if ($update->rowCount() === 0) {
+        throw new InvalidArgumentException('O alerta já foi resolvido por outro gestor.');
+    }
+
+    $touch = $pdo->prepare('UPDATE manager_groups SET updated_at = :updated_at WHERE id = :id');
+    $touch->execute([
+        'updated_at' => $now,
+        'id' => (int) $alert['group_id'],
+    ]);
+
+    return [
+        'alert_id' => $alertId,
+        'group_id' => (int) $alert['group_id'],
+        'resolution_note' => $resolutionNote,
+        'already_resolved' => false,
+    ];
 }
 
 function crm_manager_monitor_read_latest_group_analysis(PDO $pdo, int $groupId): ?array

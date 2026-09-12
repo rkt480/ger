@@ -31,6 +31,62 @@
 })();
 
 (() => {
+  const buttons = document.querySelectorAll('[data-manager-resolve-alert]');
+  const csrfToken = document.querySelector("meta[name='csrf-token']")?.content || '';
+
+  if (buttons.length === 0 || !csrfToken) {
+    return;
+  }
+
+  buttons.forEach((button) => {
+    button.addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (button.disabled) {
+        return;
+      }
+
+      const note = window.prompt(
+        'Como o problema foi resolvido? Essa observação será considerada pela próxima análise da IA. (Opcional)',
+        'Resolvido pelo gestor.'
+      );
+
+      if (note === null) {
+        return;
+      }
+
+      button.disabled = true;
+      const originalLabel = button.textContent;
+      button.textContent = 'Salvando…';
+
+      try {
+        const formData = new FormData();
+        formData.set('alert_id', button.dataset.alertId || '');
+        formData.set('resolution_note', note);
+
+        const response = await fetch('./api/manager-resolve-alert.php', {
+          method: 'POST',
+          headers: { 'X-CSRF-Token': csrfToken, Accept: 'application/json' },
+          body: formData,
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || data.ok !== true) {
+          throw new Error(data.error || 'Não foi possível resolver o alerta.');
+        }
+
+        window.location.reload();
+      } catch (error) {
+        button.disabled = false;
+        button.textContent = originalLabel;
+        window.alert(error.message || 'Não foi possível resolver o alerta.');
+      }
+    });
+  });
+})();
+
+(() => {
   const dialog = document.querySelector('[data-dialog="manager-client"]');
   const groupIdField = dialog?.querySelector('[data-manager-group-id-field]');
   const groupNameLabel = dialog?.querySelector('[data-manager-group-name-label]');

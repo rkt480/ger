@@ -80,11 +80,6 @@ $initials = static function (string $name): string {
 };
 $groupMonitorStatus = static function (array $group): string {
     $analysisStatus = (string) ($group['latest_analysis_status'] ?? '');
-    $analysisSeverity = (string) ($group['latest_analysis_severity'] ?? '');
-
-    if ($analysisStatus === 'completed' && $analysisSeverity !== '' && $analysisSeverity !== 'none') {
-        return 'critical';
-    }
 
     if ($analysisStatus === 'failed' || (int) ($group['pending_analysis'] ?? 0) > 0) {
         return 'attention';
@@ -109,7 +104,7 @@ $clientMonitorStatus = static function (array $client): string {
     <meta name="theme-color" content="#070a10" />
     <title>Monitoramento | Gerente</title>
     <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v8" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v11" />
   </head>
   <body class="settings-page manager-monitor-page">
     <div class="app-shell">
@@ -252,14 +247,19 @@ $clientMonitorStatus = static function (array $client): string {
                               ? 'A IA identificou um problema neste grupo'
                               : ($groupStatus === 'attention' ? 'Análise pendente ou indisponível' : 'A IA não identificou problemas');
                           ?>
-                          <a class="manager-group-row is-<?= htmlspecialchars($groupStatus) ?>" href="manager-group.php?id=<?= (int) $group['id'] ?>">
-                            <span class="manager-group-row-icon" aria-hidden="true">⌁</span>
-                            <span class="manager-group-row-content">
-                              <strong><span class="manager-group-status-dot" title="<?= htmlspecialchars($indicatorLabel) ?>" aria-label="<?= htmlspecialchars($indicatorLabel) ?>"></span><?= htmlspecialchars((string) $group['name']) ?></strong>
-                              <small><?= htmlspecialchars($shortText($groupSummary)) ?></small>
-                            </span>
-                            <span class="manager-group-row-meta"><b><?= (int) ($group['open_alerts'] ?? 0) ?></b><time><?= htmlspecialchars($formatDate($group['last_message_at'] ?? '')) ?></time></span>
-                          </a>
+                          <div class="manager-group-row-wrap">
+                            <a class="manager-group-row is-<?= htmlspecialchars($groupStatus) ?>" href="manager-group.php?id=<?= (int) $group['id'] ?>">
+                              <span class="manager-group-row-icon" aria-hidden="true">⌁</span>
+                              <span class="manager-group-row-content">
+                                <strong><span class="manager-group-status-dot" title="<?= htmlspecialchars($indicatorLabel) ?>" aria-label="<?= htmlspecialchars($indicatorLabel) ?>"></span><?= htmlspecialchars((string) $group['name']) ?></strong>
+                                <small><?= htmlspecialchars($shortText($groupSummary)) ?></small>
+                              </span>
+                              <span class="manager-group-row-meta"><b><?= (int) ($group['open_alerts'] ?? 0) ?></b><time><?= htmlspecialchars($formatDate($group['last_message_at'] ?? '')) ?></time></span>
+                            </a>
+                            <?php if ((int) ($group['latest_open_alert_id'] ?? 0) > 0): ?>
+                              <button type="button" class="manager-alert-resolve-button" data-manager-resolve-alert data-alert-id="<?= (int) $group['latest_open_alert_id'] ?>">Resolver</button>
+                            <?php endif; ?>
+                          </div>
                         <?php endforeach; ?>
                       <?php endif; ?>
                     </div>
@@ -326,7 +326,7 @@ $clientMonitorStatus = static function (array $client): string {
       </div>
     </div>
     <script src="./assets/crm.js?v=20260911-coach-v5"></script>
-    <script src="./assets/manager-dashboard.js?v=20260912-theme-v4"></script>
+    <script src="./assets/manager-dashboard.js?v=20260912-theme-v5"></script>
     <script src="./assets/crm-navigation.js?v=20260812-fast-navigation-v3"></script>
   </body>
 </html>

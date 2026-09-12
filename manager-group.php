@@ -35,6 +35,7 @@ $criticalAlerts = array_values(array_filter(
     $openAlerts,
     static fn(array $alert): bool => (string) ($alert['severity'] ?? '') === 'critical'
 ));
+$hasOpenAlerts = $openAlerts !== [];
 
 $formatDate = static function (mixed $value, bool $withYear = false): string {
     $value = trim((string) $value);
@@ -87,11 +88,9 @@ $pendingAnalysisCount = count(array_filter(
     $messages,
     static fn(array $message): bool => in_array((string) ($message['analysis_status'] ?? ''), ['pending', 'processing'], true)
 ));
-$groupState = $latestAnalysisStatus === 'completed' && $latestAnalysisSeverity !== '' && $latestAnalysisSeverity !== 'none'
-    ? 'critical'
-    : (($latestAnalysisStatus === 'failed' || $pendingAnalysisCount > 0)
-        ? 'attention'
-        : (count($criticalAlerts) > 0 ? 'critical' : (count($openAlerts) > 0 ? 'attention' : 'normal')));
+$groupState = ($latestAnalysisStatus === 'failed' || $pendingAnalysisCount > 0)
+    ? 'attention'
+    : ($hasOpenAlerts ? (count($criticalAlerts) > 0 ? 'critical' : 'attention') : 'normal');
 $analysisCategories = is_array($latestAnalysis['categories_decoded'] ?? null) ? $latestAnalysis['categories_decoded'] : [];
 $analysisEvidence = is_array($latestAnalysis['evidence_decoded'] ?? null) ? $latestAnalysis['evidence_decoded'] : [];
 $analysisResult = is_array($latestAnalysis['result_json_decoded'] ?? null) ? $latestAnalysis['result_json_decoded'] : [];
@@ -99,7 +98,9 @@ $analysisAction = trim((string) ($analysisResult['recommended_action'] ?? ''));
 $analysisStatusLabel = $pendingAnalysisCount > 0
     ? 'Aguardando análise'
     : ($latestAnalysisStatus === 'completed'
-        ? ($latestAnalysisSeverity !== '' && $latestAnalysisSeverity !== 'none' ? 'Atenção identificada' : 'Tudo bem')
+        ? ($latestAnalysisSeverity !== '' && $latestAnalysisSeverity !== 'none'
+            ? ($hasOpenAlerts ? 'Atenção identificada' : 'Resolvido pelo gestor')
+            : 'Tudo bem')
         : ($latestAnalysisStatus === 'failed' ? 'Análise com erro' : 'Aguardando análise'));
 ?>
 <!doctype html>
@@ -111,7 +112,7 @@ $analysisStatusLabel = $pendingAnalysisCount > 0
     <meta name="theme-color" content="#070a10" />
     <title><?= htmlspecialchars($groupName) ?> | Monitoramento</title>
     <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v8" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v11" />
   </head>
   <body class="settings-page manager-monitor-page manager-group-page">
     <div class="app-shell">
@@ -237,7 +238,14 @@ $analysisStatusLabel = $pendingAnalysisCount > 0
                       <h3><?= htmlspecialchars((string) ($alert['title'] ?? 'Alerta operacional')) ?></h3>
                       <p><?= nl2br(htmlspecialchars((string) ($alert['description'] ?? ''))) ?></p>
                       <?php if (trim((string) ($alert['evidence'] ?? '')) !== ''): ?><blockquote><?= nl2br(htmlspecialchars((string) $alert['evidence'])) ?></blockquote><?php endif; ?>
-                      <small><?= htmlspecialchars($statusLabel((string) ($alert['status'] ?? 'open'))) ?></small>
+                      <div class="manager-alert-item-footer">
+                        <small><?= htmlspecialchars($statusLabel((string) ($alert['status'] ?? 'open'))) ?></small>
+                        <?php if (in_array((string) ($alert['status'] ?? ''), ['open', 'acknowledged', 'in_progress'], true)): ?>
+                          <button type="button" class="manager-alert-resolve-button" data-manager-resolve-alert data-alert-id="<?= (int) ($alert['id'] ?? 0) ?>">Marcar como resolvido</button>
+                        <?php elseif ((string) ($alert['resolution_note'] ?? '') !== ''): ?>
+                          <span class="manager-alert-resolution-note">✓ <?= htmlspecialchars((string) $alert['resolution_note']) ?></span>
+                        <?php endif; ?>
+                      </div>
                     </article>
                   <?php endforeach; ?>
                 </div>
@@ -248,7 +256,7 @@ $analysisStatusLabel = $pendingAnalysisCount > 0
       </div>
     </div>
     <script src="./assets/crm.js?v=20260911-coach-v5"></script>
-    <script src="./assets/manager-dashboard.js?v=20260912-theme-v4"></script>
+    <script src="./assets/manager-dashboard.js?v=20260912-theme-v5"></script>
     <script src="./assets/crm-navigation.js?v=20260812-fast-navigation-v3"></script>
   </body>
 </html>

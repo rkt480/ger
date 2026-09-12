@@ -49,6 +49,11 @@ para executar:
 
 Em produção, substitua os caminhos pelo PHP e pelo diretório do servidor.
 
+Alertas abertos podem ser marcados como resolvidos no card do cliente ou na
+tela de detalhe do grupo. A observação opcional da resolução é enviada como contexto
+na próxima análise da IA, que só deve reabrir o problema quando houver nova
+evidência posterior.
+
 ## Estrutura operacional
 
 - `manager_clients`: clientes cadastrados;
