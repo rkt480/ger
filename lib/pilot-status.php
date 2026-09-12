@@ -2169,12 +2169,13 @@ function pilot_status_validate_webhook(string $body, array $payload): bool
 {
     $settings = pilot_status_settings();
     $secret = trim((string) $settings['webhook_secret']);
+    $allowUnsigned = !empty($settings['allow_unsigned_webhook']);
 
-    if ($secret === '') {
+    if ($secret === '' && !$allowUnsigned) {
         // Pilot Status webhooks created from its dashboard may not include a
         // token or signature. Keep the safer local-only fallback by default,
         // but allow an administrator to explicitly enable this provider mode.
-        return crm_is_local_host() || !empty($settings['allow_unsigned_webhook']);
+        return crm_is_local_host();
     }
 
     $plainCandidates = [
@@ -2217,5 +2218,8 @@ function pilot_status_validate_webhook(string $body, array $payload): bool
         }
     }
 
-    return false;
+    // When the administrator explicitly enables the unsigned mode, the
+    // Pilot Status dashboard is allowed to call this endpoint without adding
+    // a token or signature. A configured secret remains accepted above.
+    return $allowUnsigned;
 }

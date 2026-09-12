@@ -456,7 +456,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         URL do webhook Pilot Status
                         <input type="url" value="<?= htmlspecialchars($pilotStatusWebhookUrl) ?>" readonly />
                       </label>
-                      <small class="settings-help">No painel da Pilot Status, cadastre esta URL e habilite os eventos de recebimento de mensagens e grupos. Como o painel pode não oferecer senha, marque a opção acima. Se você configurar um segredo/token depois, desmarque essa opção.</small>
+                      <small class="settings-help">No painel da Pilot Status, cadastre esta URL e habilite os eventos de recebimento de mensagens e grupos. Como o painel pode não oferecer senha, marque a opção acima. Ela permite o webhook sem senha mesmo que exista um segredo antigo salvo; se a Pilot Status enviar uma assinatura válida, ela também será aceita.</small>
                     <?php endif; ?>
                   </div>
 
