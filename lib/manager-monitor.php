@@ -393,12 +393,14 @@ function crm_manager_monitor_participant(array $payload, string $groupId): array
 function crm_manager_monitor_message_timestamp(array $payload): ?string
 {
     $raw = crm_manager_monitor_scalar_at($payload, [
+        ['createdAt'],
         ['timestamp'],
         ['messageTimestamp'],
         ['message_timestamp'],
         ['sentAt'],
         ['sent_at'],
         ['message', 'timestamp'],
+        ['data', 'createdAt'],
         ['data', 'timestamp'],
         ['data', 'messageTimestamp'],
         ['data', 'message', 'timestamp'],
@@ -432,6 +434,8 @@ function crm_manager_monitor_provider_number_id(array $payload): string
     $value = crm_manager_monitor_scalar_at($payload, [
         ['_metadata', 'phone_number_id'],
         ['metadata', 'phone_number_id'],
+        ['data', 'whatsappNumberId'],
+        ['data', 'numberId'],
         ['phone_number_id'],
         ['phoneNumberId'],
         ['numberId'],
@@ -451,19 +455,200 @@ function crm_manager_monitor_provider_number_id(array $payload): string
 function crm_manager_monitor_group_name(array $payload): string
 {
     $value = crm_manager_monitor_scalar_at($payload, [
+        ['data', 'groupName'],
+        ['data', 'group_name'],
         ['groupName'],
         ['group_name'],
         ['subject'],
         ['group', 'name'],
         ['chat', 'name'],
-        ['data', 'groupName'],
-        ['data', 'group_name'],
         ['data', 'group', 'name'],
         ['data', 'chat', 'name'],
         ['message', 'groupName'],
     ]);
 
     return crm_manager_monitor_limit($value !== '' ? $value : 'Grupo sem nome', 255);
+}
+
+/**
+ * Canonical Pilot Status group events may omit groupName. In that case use
+ * the number-scoped groups endpoint to resolve all names in one request.
+ * The result is cached for the lifetime of the webhook request so a batch of
+ * messages does not cause one API call per message.
+ */
+function crm_manager_monitor_provider_group_names(): array
+{
+    static $cached = null;
+
+    if (is_array($cached)) {
+        return $cached;
+    }
+
+    $cached = [];
+
+    if (!function_exists('pilot_status_api_request') || !function_exists('pilot_status_settings')) {
+        return $cached;
+    }
+
+    $settings = pilot_status_settings();
+
+    if (trim((string) ($settings['api_key'] ?? '')) === '') {
+        return $cached;
+    }
+
+    // The webhook validation may have opened a MySQL connection. Release it
+    // before waiting on the provider, then crm_db() will reconnect when the
+    // normalized message is persisted.
+    if (function_exists('crm_db_release')) {
+        crm_db_release();
+    }
+
+    $result = pilot_status_api_request('/groups', 'GET', null, 8);
+
+    if (($result['ok'] ?? false) !== true) {
+        if (function_exists('pilot_status_log')) {
+            pilot_status_log('Não foi possível resolver nomes dos grupos na Pilot Status.', [
+                'error' => (string) ($result['error'] ?? 'Resposta inválida.'),
+            ]);
+        }
+
+        return $cached;
+    }
+
+    $response = $result['response'] ?? [];
+    $rows = [];
+
+    if (is_array($response) && is_array($response['groups'] ?? null)) {
+        $rows = $response['groups'];
+    } elseif (is_array($response) && is_array($response['data']['groups'] ?? null)) {
+        $rows = $response['data']['groups'];
+    } elseif (is_array($response) && array_is_list($response)) {
+        $rows = $response;
+    }
+
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+
+        $groupId = crm_manager_monitor_scalar_at($row, [
+            ['id'],
+            ['groupId'],
+            ['group_id'],
+        ]);
+        $groupName = crm_manager_monitor_scalar_at($row, [
+            ['name'],
+            ['subject'],
+            ['groupName'],
+            ['group_name'],
+        ]);
+
+        if ($groupId === '' || $groupName === '') {
+            continue;
+        }
+
+        $cached[crm_manager_monitor_limit($groupId, 255)] = crm_manager_monitor_limit($groupName, 255);
+    }
+
+    return $cached;
+}
+
+function crm_manager_monitor_enrich_group_names(array $messages): array
+{
+    $needsResolution = false;
+
+    foreach ($messages as $message) {
+        if ((string) ($message['group_name'] ?? '') === 'Grupo sem nome') {
+            $needsResolution = true;
+            break;
+        }
+    }
+
+    if (!$needsResolution) {
+        return $messages;
+    }
+
+    $providerNames = crm_manager_monitor_provider_group_names();
+
+    if ($providerNames === []) {
+        return $messages;
+    }
+
+    foreach ($messages as &$message) {
+        if ((string) ($message['group_name'] ?? '') !== 'Grupo sem nome') {
+            continue;
+        }
+
+        $groupId = (string) ($message['group_id'] ?? '');
+        $resolvedName = trim((string) ($providerNames[$groupId] ?? ''));
+
+        if ($resolvedName !== '') {
+            $message['group_name'] = $resolvedName;
+        }
+    }
+
+    unset($message);
+
+    return $messages;
+}
+
+/**
+ * Backfills names for groups that were stored before the provider lookup was
+ * added. Returns the active PDO connection because the lookup releases the
+ * old connection before waiting on the external API.
+ */
+function crm_manager_monitor_refresh_missing_group_names(PDO $pdo): PDO
+{
+    crm_manager_monitor_ensure_schema($pdo);
+
+    $pendingQuery = $pdo->prepare(
+        'SELECT id, external_group_id
+         FROM manager_groups
+         WHERE active = 1 AND name = :placeholder
+         ORDER BY id ASC
+         LIMIT 200'
+    );
+    $pendingQuery->execute(['placeholder' => 'Grupo sem nome']);
+    $pendingGroups = $pendingQuery->fetchAll(PDO::FETCH_ASSOC);
+
+    if ($pendingGroups === []) {
+        return $pdo;
+    }
+
+    $providerNames = crm_manager_monitor_provider_group_names();
+
+    if (function_exists('crm_db')) {
+        $pdo = crm_db();
+    }
+
+    if ($providerNames === []) {
+        return $pdo;
+    }
+
+    $update = $pdo->prepare(
+        'UPDATE manager_groups
+         SET name = :name, updated_at = :updated_at
+         WHERE id = :id AND name = :placeholder'
+    );
+    $updatedAt = date('Y-m-d H:i:s');
+
+    foreach ($pendingGroups as $group) {
+        $externalGroupId = trim((string) ($group['external_group_id'] ?? ''));
+        $name = trim((string) ($providerNames[$externalGroupId] ?? ''));
+
+        if ($externalGroupId === '' || $name === '') {
+            continue;
+        }
+
+        $update->execute([
+            'name' => crm_manager_monitor_limit($name, 255),
+            'updated_at' => $updatedAt,
+            'id' => (int) ($group['id'] ?? 0),
+            'placeholder' => 'Grupo sem nome',
+        ]);
+    }
+
+    return $pdo;
 }
 
 function crm_manager_monitor_message_id(array $payload, string $groupId, array $participant, string $body, string $type): string
@@ -567,6 +752,8 @@ function crm_manager_monitor_extract_group_messages(array $payload): array
             'source_payload_hash' => hash('sha256', is_string($encodedItem) ? $encodedItem : serialize($item)),
             'participant' => $participant,
             'sender_name' => crm_manager_monitor_limit(crm_manager_monitor_scalar_at($item, [
+                ['participantName'],
+                ['data', 'participantName'],
                 ['pushName'],
                 ['push_name'],
                 ['sender', 'name'],
@@ -588,7 +775,7 @@ function crm_manager_monitor_extract_group_messages(array $payload): array
         ];
     }
 
-    return $messages;
+    return crm_manager_monitor_enrich_group_names($messages);
 }
 
 function crm_manager_monitor_ingest_payload(array $payload): array
