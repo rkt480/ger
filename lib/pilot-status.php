@@ -1769,6 +1769,41 @@ function pilot_status_extract_profile_picture_url(array $payload): string
     return $find($payload);
 }
 
+function pilot_status_payload_is_group_message(array $payload): bool
+{
+    $event = strtolower(trim(pilot_status_first_payload_value($payload, [
+        ['event'],
+        ['eventType'],
+        ['type'],
+        ['data', 'event'],
+    ])));
+
+    if (in_array($event, ['message.group', 'group.message', 'messages-group.received'], true)) {
+        return true;
+    }
+
+    foreach ([
+        ['groupId'],
+        ['group_id'],
+        ['groupJid'],
+        ['group_jid'],
+        ['data', 'groupId'],
+        ['data', 'group_id'],
+        ['data', 'groupJid'],
+        ['data', 'group_jid'],
+        ['message', 'groupId'],
+        ['message', 'group_id'],
+    ] as $path) {
+        $value = pilot_status_first_payload_value($payload, [$path]);
+
+        if ($value !== '' && str_contains(strtolower($value), '@g.us')) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function pilot_status_extract_single_incoming_message(array $payload): array
 {
     $fromNumber = pilot_status_normalize_phone_candidate(pilot_status_first_payload_value($payload, [
@@ -1895,7 +1930,7 @@ function pilot_status_extract_single_incoming_message(array $payload): array
         'profile_picture_url' => pilot_status_extract_profile_picture_url($payload),
         'attribution' => crm_extract_marketing_attribution($payload),
         'from_me' => pilot_status_payload_is_from_me($payload),
-        'is_group' => (bool) $phone['is_group'],
+        'is_group' => (bool) $phone['is_group'] || pilot_status_payload_is_group_message($payload),
         'event' => pilot_status_first_payload_value($payload, [['event'], ['type'], ['eventType']]),
     ];
 }
@@ -1970,6 +2005,10 @@ function pilot_status_extract_incoming_messages(array $payload): array
 
     foreach ($items as $item) {
         $incoming = pilot_status_extract_single_incoming_message($item);
+
+        if (pilot_status_payload_is_group_message($payload)) {
+            $incoming['is_group'] = true;
+        }
 
         if ($connectedNumber !== '' && $incoming['number'] === $connectedNumber) {
             $altNumber = pilot_status_first_payload_value($item, [
