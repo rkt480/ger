@@ -1,0 +1,16 @@
+# Local configuration and runtime state
+config.php
+data/settings.json
+data/.settings-encryption.key
+data/security-login.json
+data/*.log
+data/*.lock
+
+# User-provided or provider-downloaded media
+inbound-media/*
+!inbound-media/.gitkeep
+whatsapp-media/*
+!whatsapp-media/.gitignore
+
+# Local operating-system files
+.DS_Store

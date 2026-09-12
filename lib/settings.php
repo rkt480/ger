@@ -1,0 +1,639 @@
+<?php
+
+declare(strict_types=1);
+
+function crm_settings_file(): string
+{
+    return dirname(__DIR__) . '/data/settings.json';
+}
+
+function crm_settings_db(): PDO
+{
+    if (!function_exists('crm_db')) {
+        require_once __DIR__ . '/storage.php';
+    }
+
+    return crm_db();
+}
+
+function crm_decode_setting_value(string $value)
+{
+    $decoded = json_decode($value, true);
+
+    return json_last_error() === JSON_ERROR_NONE ? $decoded : $value;
+}
+
+/**
+ * Secrets saved through the CRM settings screen are encrypted at rest.
+ * An environment secret is preferred. When it is not available, the CRM
+ * generates a protected local key on first use inside the denied data folder.
+ * The key is never rendered back to the browser or stored in the database.
+ */
+function crm_settings_encryption_secret(bool $createIfMissing = false): string
+{
+    $secret = getenv('GERENTE_SETTINGS_ENCRYPTION_KEY');
+
+    if ($secret === false || trim($secret) === '') {
+        $secret = getenv('MMDESIGN_SETTINGS_ENCRYPTION_KEY');
+    }
+
+    if ($secret !== false && trim($secret) !== '') {
+        return trim($secret);
+    }
+
+    $keyFile = dirname(__DIR__) . '/data/.settings-encryption.key';
+
+    if (is_file($keyFile)) {
+        $storedSecret = file_get_contents($keyFile);
+
+        return $storedSecret === false ? '' : trim($storedSecret);
+    }
+
+    if (!$createIfMissing) {
+        return '';
+    }
+
+    $handle = @fopen($keyFile, 'x');
+
+    if ($handle === false) {
+        // Another request may have created the key between is_file() and
+        // fopen(). Read it before reporting a genuine permissions problem.
+        if (is_file($keyFile)) {
+            $storedSecret = file_get_contents($keyFile);
+
+            return $storedSecret === false ? '' : trim($storedSecret);
+        }
+
+        throw new RuntimeException('Não foi possível criar a chave interna de proteção das configurações. Verifique a permissão de escrita em crm/data.');
+    }
+
+    try {
+        $secret = bin2hex(random_bytes(32));
+        if (fwrite($handle, $secret) === false) {
+            throw new RuntimeException('Não foi possível gravar a chave interna de proteção das configurações.');
+        }
+    } finally {
+        fclose($handle);
+    }
+
+    @chmod($keyFile, 0600);
+
+    return $secret;
+}
+
+function crm_settings_encryption_key(bool $createIfMissing = false): string
+{
+    $secret = crm_settings_encryption_secret($createIfMissing);
+
+    return $secret === '' ? '' : hash('sha256', $secret, true);
+}
+
+function crm_encrypt_setting_secret(string $value): string
+{
+    if ($value === '') {
+        return '';
+    }
+
+    $key = crm_settings_encryption_key(true);
+
+    if ($key === '' || (!function_exists('sodium_crypto_secretbox') && !function_exists('openssl_encrypt'))) {
+        throw new RuntimeException('A chave de criptografia das configurações não está configurada no servidor.');
+    }
+
+    if (function_exists('sodium_crypto_secretbox')) {
+        $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+        $ciphertext = sodium_crypto_secretbox($value, $nonce, $key);
+
+        return 'enc:v1:' . base64_encode($nonce . $ciphertext);
+    }
+
+    $nonce = random_bytes(12);
+    $tag = '';
+    $ciphertext = openssl_encrypt($value, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $nonce, $tag);
+
+    if ($ciphertext === false) {
+        throw new RuntimeException('Não foi possível criptografar a configuração secreta.');
+    }
+
+    return 'enc:v2:' . base64_encode($nonce . $tag . $ciphertext);
+}
+
+function crm_decrypt_setting_secret(string $value): string
+{
+    if ($value === '' || (!str_starts_with($value, 'enc:v1:') && !str_starts_with($value, 'enc:v2:'))) {
+        // Allows a one-time migration of values saved before encryption was
+        // introduced. The next settings save encrypts them.
+        return $value;
+    }
+
+    $key = crm_settings_encryption_key();
+    $version = str_starts_with($value, 'enc:v2:') ? 'enc:v2:' : 'enc:v1:';
+    $encoded = base64_decode(substr($value, strlen($version)), true);
+
+    if ($key === '' || $encoded === false) {
+        return '';
+    }
+
+    if ($version === 'enc:v2:') {
+        if (strlen($encoded) <= 28) {
+            return '';
+        }
+
+        $nonce = substr($encoded, 0, 12);
+        $tag = substr($encoded, 12, 16);
+        $ciphertext = substr($encoded, 28);
+        $plaintext = openssl_decrypt($ciphertext, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $nonce, $tag);
+
+        return $plaintext === false ? '' : $plaintext;
+    }
+
+    if (!function_exists('sodium_crypto_secretbox_open') || strlen($encoded) <= SODIUM_CRYPTO_SECRETBOX_NONCEBYTES) {
+        return '';
+    }
+
+    $nonce = substr($encoded, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+    $ciphertext = substr($encoded, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+    $plaintext = sodium_crypto_secretbox_open($ciphertext, $nonce, $key);
+
+    return $plaintext === false ? '' : $plaintext;
+}
+
+function crm_is_secret_setting(string $key): bool
+{
+    if (in_array($key, [
+        'openai_api_key',
+        'pilot_status_api_key',
+        'pilot_status_webhook_secret',
+        'meta_whatsapp_access_token',
+        'meta_whatsapp_app_secret',
+        'meta_access_token',
+        'google_calendar_client_secret',
+        'google_calendar_access_token',
+        'google_calendar_refresh_token',
+        'google_calendar_oauth_state',
+        'push_vapid_private_key',
+    ], true)) {
+        return true;
+    }
+
+    return preg_match('/(?:^|_)(?:api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|app[_-]?secret|webhook[_-]?secret|private[_-]?key)$/i', $key) === 1;
+}
+
+function crm_read_legacy_settings(): array
+{
+    $file = crm_settings_file();
+
+    if (!is_file($file)) {
+        return [];
+    }
+
+    $contents = file_get_contents($file);
+    $settings = json_decode($contents !== false ? $contents : '{}', true);
+
+    return is_array($settings) ? $settings : [];
+}
+
+function crm_migrate_legacy_settings(PDO $pdo): void
+{
+    $migrationKey = '__legacy_json_migrated';
+    $check = $pdo->prepare('SELECT COUNT(*) FROM crm_settings WHERE setting_key = :setting_key');
+    $check->execute(['setting_key' => $migrationKey]);
+
+    if ((int) $check->fetchColumn() > 0) {
+        return;
+    }
+
+    $settings = crm_read_legacy_settings();
+    $now = date('Y-m-d H:i:s');
+    $insert = $pdo->prepare(
+        'INSERT IGNORE INTO crm_settings (setting_key, setting_value, created_at, updated_at)
+         VALUES (:setting_key, :setting_value, :created_at, :updated_at)'
+    );
+
+    $pdo->beginTransaction();
+
+    try {
+        foreach ($settings as $key => $value) {
+            if (!is_string($key) || $key === '' || str_starts_with($key, '__') || $key === 'whatsapp_number') {
+                continue;
+            }
+
+            $insert->execute([
+                'setting_key' => $key,
+                'setting_value' => json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+
+        $insert->execute([
+            'setting_key' => $migrationKey,
+            'setting_value' => 'true',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        $pdo->commit();
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        throw $error;
+    }
+}
+
+function crm_read_settings_from_db(PDO $pdo): array
+{
+    $stmt = $pdo->query(
+        'SELECT setting_key, setting_value
+         FROM crm_settings
+         ORDER BY setting_key'
+    );
+    $settings = [];
+
+    foreach ($stmt->fetchAll() as $row) {
+        $key = (string) ($row['setting_key'] ?? '');
+
+        if ($key === '' || str_starts_with($key, '__')) {
+            continue;
+        }
+
+        $value = crm_decode_setting_value((string) ($row['setting_value'] ?? ''));
+        $settings[$key] = crm_is_secret_setting($key)
+            ? crm_decrypt_setting_secret((string) $value)
+            : $value;
+    }
+
+    return $settings;
+}
+
+function crm_read_settings(): array
+{
+    if (!array_key_exists('crm_settings_cache', $GLOBALS)) {
+        $GLOBALS['crm_settings_cache'] = crm_read_settings_from_db(crm_settings_db());
+    }
+
+    return is_array($GLOBALS['crm_settings_cache']) ? $GLOBALS['crm_settings_cache'] : [];
+}
+
+function crm_reset_settings_cache(): void
+{
+    unset($GLOBALS['crm_settings_cache']);
+}
+
+function crm_write_settings_to_db(PDO $pdo, array $settings): void
+{
+    $now = date('Y-m-d H:i:s');
+    $upsert = $pdo->prepare(
+        'INSERT INTO crm_settings (setting_key, setting_value, created_at, updated_at)
+         VALUES (:setting_key, :setting_value, :created_at, :updated_at)
+         ON DUPLICATE KEY UPDATE
+            setting_value = VALUES(setting_value),
+            updated_at = VALUES(updated_at)'
+    );
+
+    $pdo->beginTransaction();
+
+    try {
+        $pdo->exec("DELETE FROM crm_settings WHERE LEFT(setting_key, 2) <> '__'");
+
+        foreach ($settings as $key => $value) {
+            if (!is_string($key) || $key === '' || str_starts_with($key, '__') || $key === 'whatsapp_number') {
+                continue;
+            }
+
+            if (crm_is_secret_setting($key)) {
+                $value = crm_encrypt_setting_secret((string) $value);
+            }
+
+            $upsert->execute([
+                'setting_key' => $key,
+                'setting_value' => json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+
+        $pdo->commit();
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        throw $error;
+    }
+}
+
+function crm_write_settings(array $settings): void
+{
+    crm_write_settings_to_db(crm_settings_db(), $settings);
+    crm_reset_settings_cache();
+}
+
+function crm_normalize_whatsapp_number(string $number): string
+{
+    $digits = preg_replace('/\D+/', '', $number) ?? '';
+
+    if ($digits === '') {
+        return '';
+    }
+
+    return str_starts_with($digits, '55') ? $digits : '55' . $digits;
+}
+
+function crm_whatsapp_number_variants(string $number): array
+{
+    $digits = preg_replace('/\D+/', '', $number) ?? '';
+
+    if ($digits === '') {
+        return [];
+    }
+
+    if (!str_starts_with($digits, '55')) {
+        $digits = '55' . $digits;
+    }
+
+    $variants = [$digits];
+
+    if (strlen($digits) === 12 && preg_match('/^55\d{2}[6-9]\d{7}$/', $digits) === 1) {
+        array_unshift($variants, substr($digits, 0, 4) . '9' . substr($digits, 4));
+    }
+    if (strlen($digits) === 13 && preg_match('/^55\d{2}9[6-9]\d{7}$/', $digits) === 1) {
+        $variants[] = substr($digits, 0, 4) . substr($digits, 5);
+    }
+
+    return array_values(array_unique($variants));
+}
+
+function crm_whatsapp_provider(): string
+{
+    $settings = crm_read_settings();
+    $provider = trim((string) ($settings['whatsapp_provider'] ?? 'pilot_status'));
+
+    return in_array($provider, ['meta_cloud', 'pilot_status'], true) ? $provider : 'pilot_status';
+}
+
+function crm_normalize_url_base(string $url, string $fallback): string
+{
+    $normalized = rtrim(trim($url), '/');
+
+    if (str_starts_with($normalized, 'https://api.pilotstatus.com.br')) {
+        $normalized = 'https://pilotstatus.com.br' . substr($normalized, strlen('https://api.pilotstatus.com.br'));
+    }
+
+    if ($normalized === '') {
+        return $fallback;
+    }
+
+    return filter_var($normalized, FILTER_VALIDATE_URL) !== false ? $normalized : $fallback;
+}
+
+function crm_normalize_meta_graph_version(string $version): string
+{
+    $normalized = strtolower(trim($version));
+    $normalized = ltrim($normalized, 'v');
+
+    if (preg_match('/^\d{1,2}\.\d$/', $normalized) !== 1) {
+        return '20.0';
+    }
+
+    return $normalized;
+}
+
+function crm_normalize_whatsapp_business_time(string $time, string $fallback): string
+{
+    $normalized = trim($time);
+
+    if (preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $normalized) === 1) {
+        return substr($normalized, 0, 5) . ':00';
+    }
+
+    if (preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/', $normalized) === 1) {
+        return $normalized;
+    }
+
+    return $fallback;
+}
+
+function crm_meta_whatsapp_settings(): array
+{
+    $settings = crm_read_settings();
+    $config = [];
+    $configFile = dirname(__DIR__) . '/config.php';
+
+    if (is_file($configFile)) {
+        $loaded = require $configFile;
+        $config = is_array($loaded) ? ($loaded['meta_whatsapp'] ?? []) : [];
+    }
+
+    return [
+        'graph_version' => crm_normalize_meta_graph_version((string) ($settings['meta_whatsapp_graph_version'] ?? '20.0')),
+        'phone_number_id' => preg_replace('/\D+/', '', (string) ($settings['meta_whatsapp_phone_number_id'] ?? '')) ?? '',
+        'business_account_id' => preg_replace('/\D+/', '', (string) ($settings['meta_whatsapp_business_account_id'] ?? '')) ?? '',
+        'access_token' => trim((string) ($settings['meta_whatsapp_access_token'] ?? ($config['access_token'] ?? ''))),
+        'verify_token' => trim((string) ($settings['meta_whatsapp_verify_token'] ?? ($config['verify_token'] ?? ''))),
+        'app_secret' => trim((string) ($settings['meta_whatsapp_app_secret'] ?? ($config['app_secret'] ?? ''))),
+        'coex_enabled' => !empty($settings['meta_whatsapp_coex_enabled']),
+    ];
+}
+
+function crm_meta_whatsapp_is_configured(): bool
+{
+    $meta = crm_meta_whatsapp_settings();
+
+    return $meta['phone_number_id'] !== '' && $meta['access_token'] !== '';
+}
+
+function crm_pilot_status_settings(): array
+{
+    $settings = crm_read_settings();
+    $config = [];
+    $configFile = dirname(__DIR__) . '/config.php';
+
+    if (is_file($configFile)) {
+        $loaded = require $configFile;
+        $config = is_array($loaded) ? ($loaded['pilot_status'] ?? []) : [];
+    }
+
+    $baseUrl = trim((string) ($settings['pilot_status_base_url'] ?? ''));
+    $apiKey = trim((string) ($settings['pilot_status_api_key'] ?? ''));
+    $webhookSecret = trim((string) ($settings['pilot_status_webhook_secret'] ?? ''));
+
+    if ($baseUrl === '') {
+        $baseUrl = trim((string) ($config['base_url'] ?? ''));
+    }
+
+    if ($apiKey === '') {
+        $apiKey = trim((string) ($config['api_key'] ?? ''));
+    }
+
+    if ($webhookSecret === '') {
+        $webhookSecret = trim((string) ($config['webhook_secret'] ?? ''));
+    }
+
+    return [
+        'base_url' => crm_normalize_url_base($baseUrl, 'https://pilotstatus.com.br/v1'),
+        'api_key' => $apiKey,
+        'webhook_secret' => $webhookSecret,
+    ];
+}
+
+function crm_pilot_status_is_configured(): bool
+{
+    $pilot = crm_pilot_status_settings();
+
+    return $pilot['base_url'] !== '' && $pilot['api_key'] !== '';
+}
+
+function crm_normalize_notification_email(string $email): string
+{
+    $normalized = trim($email);
+
+    if ($normalized === '') {
+        return '';
+    }
+
+    return filter_var($normalized, FILTER_VALIDATE_EMAIL) !== false ? $normalized : '';
+}
+
+function crm_notification_email(): string
+{
+    $settings = crm_read_settings();
+    return crm_normalize_notification_email((string) ($settings['notification_email'] ?? ''));
+}
+
+function crm_meta_capi_settings(): array
+{
+    $settings = crm_read_settings();
+
+    return [
+        'pixel_id' => trim((string) ($settings['meta_pixel_id'] ?? '')),
+        'access_token' => trim((string) ($settings['meta_access_token'] ?? '')),
+        'test_event_code' => trim((string) ($settings['meta_test_event_code'] ?? '')),
+    ];
+}
+
+function crm_meta_capi_is_configured(): bool
+{
+    $meta = crm_meta_capi_settings();
+
+    return $meta['pixel_id'] !== '' && $meta['access_token'] !== '';
+}
+
+function crm_normalize_gtm_id(string $gtmId): string
+{
+    $normalized = strtoupper(trim($gtmId));
+
+    if ($normalized === '') {
+        return '';
+    }
+
+    return preg_match('/^GTM-[A-Z0-9]+$/', $normalized) === 1 ? $normalized : '';
+}
+
+function crm_google_tag_manager_id(): string
+{
+    $settings = crm_read_settings();
+    return crm_normalize_gtm_id((string) ($settings['google_tag_manager_id'] ?? ''));
+}
+
+function crm_google_calendar_redirect_uri(): string
+{
+    $settings = crm_read_settings();
+    $configured = trim((string) ($settings['google_calendar_redirect_uri'] ?? ''));
+
+    if ($configured !== '') {
+        return $configured;
+    }
+
+    $https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    $scheme = $https ? 'https' : 'http';
+    $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+
+    if ($host === '') {
+        return '';
+    }
+
+    return $scheme . '://' . $host . rtrim(dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/crm/settings.php')), '/') . '/google-calendar-callback.php';
+}
+
+function crm_google_calendar_settings(): array
+{
+    $settings = crm_read_settings();
+
+    return [
+        'client_id' => trim((string) ($settings['google_calendar_client_id'] ?? '')),
+        'client_secret' => trim((string) ($settings['google_calendar_client_secret'] ?? '')),
+        'redirect_uri' => crm_google_calendar_redirect_uri(),
+        'calendar_id' => trim((string) ($settings['google_calendar_id'] ?? 'primary')) ?: 'primary',
+        'access_token' => trim((string) ($settings['google_calendar_access_token'] ?? '')),
+        'refresh_token' => trim((string) ($settings['google_calendar_refresh_token'] ?? '')),
+        'token_expires_at' => (int) ($settings['google_calendar_token_expires_at'] ?? 0),
+        'connected_at' => trim((string) ($settings['google_calendar_connected_at'] ?? '')),
+    ];
+}
+
+function crm_google_calendar_is_configured(): bool
+{
+    $calendar = crm_google_calendar_settings();
+
+    return $calendar['client_id'] !== ''
+        && $calendar['client_secret'] !== ''
+        && $calendar['redirect_uri'] !== '';
+}
+
+function crm_google_calendar_is_connected(): bool
+{
+    $calendar = crm_google_calendar_settings();
+
+    return crm_google_calendar_is_configured()
+        && $calendar['refresh_token'] !== '';
+}
+
+function crm_normalize_sales_sla_statuses($statuses): array
+{
+    if (is_string($statuses)) {
+        $statuses = preg_split('/[,;\s]+/', $statuses) ?: [];
+    }
+
+    if (!is_array($statuses)) {
+        return ['novo', 'contatado', 'followup'];
+    }
+
+    $normalized = [];
+
+    foreach ($statuses as $status) {
+        $status = trim((string) $status);
+
+        if ($status !== '') {
+            $normalized[$status] = $status;
+        }
+    }
+
+    return array_values($normalized);
+}
+
+function crm_sales_distribution_settings(): array
+{
+    $settings = crm_read_settings();
+    $rotationWasConfigured = array_key_exists('sales_rotation_enabled', $settings);
+    $slaMinutes = max(15, min(10080, (int) ($settings['sales_sla_inactivity_minutes'] ?? 240)));
+    $warningMinutes = max(0, min($slaMinutes, (int) ($settings['sales_sla_warning_minutes'] ?? 30)));
+    $slaAction = trim((string) ($settings['sales_sla_action'] ?? 'rotation'));
+
+    return [
+        // A roleta é o fluxo esperado para novos leads. Só fica manual quando
+        // o administrador desmarca essa opção explicitamente.
+        'rotation_enabled' => $rotationWasConfigured ? !empty($settings['sales_rotation_enabled']) : true,
+        'sla_enabled' => !empty($settings['sales_sla_enabled']),
+        'sla_inactivity_minutes' => $slaMinutes,
+        'sla_warning_minutes' => $warningMinutes,
+        'sla_action' => in_array($slaAction, ['rotation', 'manager_review'], true) ? $slaAction : 'rotation',
+        // The access schedule is also the seller's effective SLA work window.
+        // Keep this enabled by default so existing schedules do not cause
+        // automatic reassignment after the seller has been locked out.
+        'sla_respect_access_schedule' => !array_key_exists('sales_sla_respect_access_schedule', $settings)
+            || !empty($settings['sales_sla_respect_access_schedule']),
+        'sla_statuses' => crm_normalize_sales_sla_statuses($settings['sales_sla_statuses'] ?? ['novo', 'contatado', 'followup']),
+    ];
+}
