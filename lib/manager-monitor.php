@@ -802,7 +802,12 @@ function crm_manager_monitor_ingest_payload(array $payload): array
              VALUES (:provider_number_id, :external_group_id, :name, :last_message_at, :created_at, :updated_at)
              ON DUPLICATE KEY UPDATE
                 name = IF(VALUES(name) <> "Grupo sem nome", VALUES(name), name),
-                last_message_at = COALESCE(VALUES(last_message_at), last_message_at),
+                last_message_at = CASE
+                    WHEN VALUES(last_message_at) IS NULL THEN last_message_at
+                    WHEN last_message_at IS NULL THEN VALUES(last_message_at)
+                    WHEN VALUES(last_message_at) > last_message_at THEN VALUES(last_message_at)
+                    ELSE last_message_at
+                END,
                 updated_at = VALUES(updated_at)'
         );
         $groupSelect = $pdo->prepare(
@@ -1026,6 +1031,38 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
             'critical_alerts' => (int) ($stats['critical_alerts'] ?? 0),
         ],
     ];
+}
+
+/**
+ * Returns a compact version marker for the group inbox polling endpoint.
+ * Message ingestion updates manager_groups.updated_at, so this detects new
+ * messages, newly discovered groups and late name resolution without exposing
+ * group content to the browser.
+ */
+function crm_manager_monitor_feed_version(PDO $pdo): string
+{
+    crm_manager_monitor_ensure_schema($pdo);
+    $query = $pdo->query(
+        'SELECT id, name, last_message_at, updated_at
+         FROM manager_groups
+         WHERE active = 1
+         ORDER BY id ASC'
+    );
+    $rows = [];
+
+    foreach ($query->fetchAll(PDO::FETCH_ASSOC) as $group) {
+        $rows[] = [
+            (int) ($group['id'] ?? 0),
+            (string) ($group['name'] ?? ''),
+            (string) ($group['last_message_at'] ?? ''),
+            (string) ($group['updated_at'] ?? ''),
+        ];
+    }
+
+    return hash(
+        'sha256',
+        json_encode($rows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: ''
+    );
 }
 
 function crm_manager_monitor_read_active_clients(PDO $pdo): array

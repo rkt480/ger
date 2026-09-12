@@ -278,3 +278,187 @@ CREATE TABLE IF NOT EXISTS followup_step_history (
   UNIQUE KEY uniq_lead_flow_order (lead_id, flow_id, step_order),
   INDEX idx_history_lookup (lead_id, flow_id, step_order, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tables used by the OpenAI sales coach and the manager monitoring screens.
+-- Keep this file executable after selecting the Hostinger database in
+-- phpMyAdmin; the runtime bootstrap creates the same tables automatically.
+CREATE TABLE IF NOT EXISTS openai_coach_documents (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  filename VARCHAR(255) NOT NULL,
+  openai_file_id VARCHAR(128) NOT NULL UNIQUE,
+  vector_store_id VARCHAR(128) NOT NULL,
+  mime_type VARCHAR(100) NOT NULL DEFAULT 'application/pdf',
+  size_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  status VARCHAR(30) NOT NULL DEFAULT 'processing',
+  created_by INT NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  INDEX idx_openai_coach_documents_status (status, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS openai_coach_analyses (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  lead_id VARCHAR(32) NOT NULL,
+  seller_user_id INT NULL,
+  model VARCHAR(100) NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'completed',
+  score TINYINT UNSIGNED NULL,
+  temperature VARCHAR(20) NULL,
+  potential VARCHAR(30) NULL,
+  result_json LONGTEXT NULL,
+  conversation_fingerprint CHAR(64) NULL,
+  input_tokens INT UNSIGNED NULL,
+  output_tokens INT UNSIGNED NULL,
+  error_message TEXT NULL,
+  created_at DATETIME NOT NULL,
+  INDEX idx_openai_coach_analyses_lead (lead_id, created_at),
+  INDEX idx_openai_coach_analyses_seller (seller_user_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS manager_clients (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(180) NOT NULL,
+  external_ref VARCHAR(120) NULL,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  INDEX idx_manager_clients_active (active, name),
+  INDEX idx_manager_clients_external_ref (external_ref)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS manager_groups (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  client_id BIGINT UNSIGNED NULL,
+  provider_number_id VARCHAR(160) NOT NULL,
+  external_group_id VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL DEFAULT 'Grupo sem nome',
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  last_message_at DATETIME NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  UNIQUE KEY uq_manager_groups_provider_external (provider_number_id, external_group_id),
+  INDEX idx_manager_groups_client (client_id, active),
+  INDEX idx_manager_groups_activity (last_message_at, active),
+  CONSTRAINT fk_manager_groups_client
+    FOREIGN KEY (client_id) REFERENCES manager_clients(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS manager_group_participants (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  group_id BIGINT UNSIGNED NOT NULL,
+  external_participant_id VARCHAR(255) NOT NULL,
+  phone VARCHAR(40) NULL,
+  display_name VARCHAR(180) NULL,
+  is_business_number TINYINT(1) NOT NULL DEFAULT 0,
+  first_seen_at DATETIME NOT NULL,
+  last_seen_at DATETIME NOT NULL,
+  UNIQUE KEY uq_manager_participants_group_external (group_id, external_participant_id),
+  INDEX idx_manager_participants_phone (phone),
+  CONSTRAINT fk_manager_participants_group
+    FOREIGN KEY (group_id) REFERENCES manager_groups(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS manager_group_messages (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  group_id BIGINT UNSIGNED NOT NULL,
+  participant_id BIGINT UNSIGNED NULL,
+  provider_number_id VARCHAR(160) NOT NULL,
+  external_message_id VARCHAR(255) NOT NULL,
+  source_payload_hash CHAR(64) NOT NULL,
+  sender_external_id VARCHAR(255) NULL,
+  sender_phone VARCHAR(40) NULL,
+  sender_name VARCHAR(180) NULL,
+  message_type VARCHAR(40) NOT NULL DEFAULT 'text',
+  body LONGTEXT NULL,
+  media_metadata LONGTEXT NULL,
+  reply_to_external_id VARCHAR(255) NULL,
+  from_me TINYINT(1) NOT NULL DEFAULT 0,
+  sent_at DATETIME NULL,
+  received_at DATETIME NOT NULL,
+  analysis_status VARCHAR(30) NOT NULL DEFAULT 'pending',
+  created_at DATETIME NOT NULL,
+  UNIQUE KEY uq_manager_messages_provider_id (provider_number_id, external_message_id),
+  INDEX idx_manager_messages_group_time (group_id, sent_at, id),
+  INDEX idx_manager_messages_analysis (analysis_status, received_at),
+  INDEX idx_manager_messages_sender_phone (sender_phone),
+  CONSTRAINT fk_manager_messages_group
+    FOREIGN KEY (group_id) REFERENCES manager_groups(id) ON DELETE CASCADE,
+  CONSTRAINT fk_manager_messages_participant
+    FOREIGN KEY (participant_id) REFERENCES manager_group_participants(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS manager_ai_analyses (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  group_id BIGINT UNSIGNED NOT NULL,
+  message_id BIGINT UNSIGNED NULL,
+  model VARCHAR(100) NOT NULL,
+  prompt_version VARCHAR(80) NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'completed',
+  severity VARCHAR(20) NULL,
+  categories LONGTEXT NULL,
+  summary TEXT NULL,
+  evidence TEXT NULL,
+  confidence DECIMAL(5,4) NULL,
+  result_json LONGTEXT NULL,
+  error_message TEXT NULL,
+  created_at DATETIME NOT NULL,
+  INDEX idx_manager_ai_analyses_group (group_id, created_at),
+  INDEX idx_manager_ai_analyses_message (message_id, created_at),
+  CONSTRAINT fk_manager_ai_analyses_group
+    FOREIGN KEY (group_id) REFERENCES manager_groups(id) ON DELETE CASCADE,
+  CONSTRAINT fk_manager_ai_analyses_message
+    FOREIGN KEY (message_id) REFERENCES manager_group_messages(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS manager_alerts (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  client_id BIGINT UNSIGNED NULL,
+  group_id BIGINT UNSIGNED NOT NULL,
+  message_id BIGINT UNSIGNED NULL,
+  alert_type VARCHAR(60) NOT NULL,
+  severity VARCHAR(20) NOT NULL DEFAULT 'medium',
+  status VARCHAR(30) NOT NULL DEFAULT 'open',
+  title VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,
+  evidence TEXT NULL,
+  confidence DECIMAL(5,4) NULL,
+  assigned_user_id INT NULL,
+  resolved_by_user_id INT NULL,
+  resolved_at DATETIME NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  INDEX idx_manager_alerts_status (status, severity, created_at),
+  INDEX idx_manager_alerts_client (client_id, status, created_at),
+  INDEX idx_manager_alerts_group (group_id, status, created_at),
+  CONSTRAINT fk_manager_alerts_client
+    FOREIGN KEY (client_id) REFERENCES manager_clients(id) ON DELETE SET NULL,
+  CONSTRAINT fk_manager_alerts_group
+    FOREIGN KEY (group_id) REFERENCES manager_groups(id) ON DELETE CASCADE,
+  CONSTRAINT fk_manager_alerts_message
+    FOREIGN KEY (message_id) REFERENCES manager_group_messages(id) ON DELETE SET NULL,
+  CONSTRAINT fk_manager_alerts_assigned_user
+    FOREIGN KEY (assigned_user_id) REFERENCES crm_users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_manager_alerts_resolved_user
+    FOREIGN KEY (resolved_by_user_id) REFERENCES crm_users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS manager_report_requirements (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  client_id BIGINT UNSIGNED NULL,
+  group_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(180) NOT NULL,
+  frequency VARCHAR(20) NOT NULL DEFAULT 'daily',
+  due_weekday TINYINT UNSIGNED NULL,
+  due_time TIME NULL,
+  responsible_external_id VARCHAR(255) NULL,
+  keywords_json LONGTEXT NULL,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  INDEX idx_manager_reports_due (active, frequency, due_weekday, due_time),
+  INDEX idx_manager_reports_group (group_id, active),
+  CONSTRAINT fk_manager_reports_client
+    FOREIGN KEY (client_id) REFERENCES manager_clients(id) ON DELETE SET NULL,
+  CONSTRAINT fk_manager_reports_group
+    FOREIGN KEY (group_id) REFERENCES manager_groups(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

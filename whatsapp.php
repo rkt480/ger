@@ -27,10 +27,18 @@ if (session_status() === PHP_SESSION_ACTIVE) {
 }
 
 $requestedLeadId = trim((string) ($_GET['lead'] ?? ''));
+$requestedGroupId = filter_var($_GET['group'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+$requestedGroupId = is_int($requestedGroupId) ? $requestedGroupId : 0;
 $isWaConversationFragment = ($_GET['_wa_fragment'] ?? '') === 'conversation';
 $fragmentLead = $isWaConversationFragment && $requestedLeadId !== ''
     ? crm_find_lead($requestedLeadId)
     : null;
+$pdo = crm_db();
+
+if ($canManageSales) {
+    $pdo = crm_manager_monitor_refresh_missing_group_names($pdo);
+}
+
 $leads = is_array($fragmentLead) ? [$fragmentLead] : crm_read_lead_summaries();
 $provider = crm_whatsapp_provider();
 $providerLabel = crm_whatsapp_provider_label($provider);
@@ -53,6 +61,42 @@ $providerFilter = trim((string) ($_GET['provider'] ?? 'all'));
 
 if (!in_array($providerFilter, ['all', 'meta_cloud', 'pilot_status'], true)) {
     $providerFilter = 'all';
+}
+
+$groupConversations = [];
+
+if ($canManageSales && in_array($providerFilter, ['all', 'pilot_status'], true)) {
+    $managerMonitor = crm_manager_monitor_read_dashboard($pdo);
+
+    foreach ($managerMonitor['groups'] as $group) {
+        $groupId = (int) ($group['id'] ?? 0);
+
+        if ($groupId <= 0) {
+            continue;
+        }
+
+        $groupMessages = whatsapp_page_group_messages(
+            crm_manager_monitor_read_group_messages($pdo, $groupId)
+        );
+        $lastMessage = $groupMessages !== [] ? $groupMessages[count($groupMessages) - 1] : [];
+        $groupName = trim((string) ($group['name'] ?? 'Grupo sem nome')) ?: 'Grupo sem nome';
+        $lastAt = trim((string) ($lastMessage['at'] ?? ($group['last_message_at'] ?? '')));
+        $preview = trim((string) ($lastMessage['text'] ?? ($group['last_message_preview'] ?? '')));
+
+        $groupConversations[] = [
+            'group' => $group,
+            'group_id' => $groupId,
+            'name' => $groupName,
+            'preview' => $preview !== '' ? $preview : 'Nenhuma mensagem armazenada ainda.',
+            'last_at' => $lastAt,
+            'messages' => $groupMessages,
+        ];
+    }
+
+    usort($groupConversations, static fn(array $a, array $b): int =>
+        whatsapp_page_timestamp((string) ($b['last_at'] ?? ''))
+        <=> whatsapp_page_timestamp((string) ($a['last_at'] ?? ''))
+    );
 }
 
 $https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
@@ -186,6 +230,38 @@ function whatsapp_page_sent_media_label(array $media): string
         'sticker' => 'Sticker enviado',
         default => 'Mídia enviada',
     };
+}
+
+function whatsapp_page_group_messages(array $messages): array
+{
+    $normalized = [];
+
+    foreach ($messages as $message) {
+        $mediaMetadata = json_decode((string) ($message['media_metadata'] ?? ''), true);
+        $media = is_array($mediaMetadata) ? $mediaMetadata : [];
+        $mediaType = whatsapp_page_normalize_media_type((string) ($media['type'] ?? ($message['message_type'] ?? '')));
+        $body = trim((string) ($message['body'] ?? ''));
+        $text = $body !== ''
+            ? $body
+            : ($mediaType !== '' && $mediaType !== 'text'
+                ? whatsapp_page_media_label(['type' => $mediaType])
+                : 'Mensagem sem texto');
+        $sentAt = trim((string) ($message['sent_at'] ?? ''));
+        $receivedAt = trim((string) ($message['received_at'] ?? ''));
+
+        $normalized[] = [
+            'direction' => (int) ($message['from_me'] ?? 0) === 1 ? 'outgoing' : 'incoming',
+            'provider' => 'pilot_status',
+            'at' => $sentAt !== '' ? $sentAt : $receivedAt,
+            'text' => $text,
+            'label' => (int) ($message['from_me'] ?? 0) === 1 ? 'Enviada' : 'Recebida',
+            'sender_name' => trim((string) ($message['sender_name'] ?? '')),
+        ];
+    }
+
+    usort($normalized, 'whatsapp_page_compare_messages');
+
+    return $normalized;
 }
 
 function whatsapp_page_received_media_markup(array $media): string
@@ -1384,6 +1460,17 @@ if ($requestedLeadId !== '') {
     }
 }
 
+$activeGroup = null;
+
+if ($requestedGroupId > 0) {
+    foreach ($groupConversations as $groupConversation) {
+        if ((int) ($groupConversation['group_id'] ?? 0) === $requestedGroupId) {
+            $activeGroup = $groupConversation;
+            break;
+        }
+    }
+}
+
 $activeLead = is_array($requestedLead) ? $requestedLead : (is_array($activeConversation) ? $activeConversation['lead'] : null);
 $activeCoachAnalysis = is_array($activeLead)
     ? crm_openai_coach_latest_analysis((string) ($activeLead['id'] ?? ''))
@@ -1395,6 +1482,10 @@ if (is_array($activeConversation)) {
     usort($activeMessages, 'whatsapp_page_compare_messages');
 }
 
+$activeGroupMessages = is_array($activeGroup) && is_array($activeGroup['messages'] ?? null)
+    ? $activeGroup['messages']
+    : [];
+
 if (is_array($activeConversation) && $currentUserId > 0) {
     crm_mark_whatsapp_conversation_read(
         $currentUserId,
@@ -1403,8 +1494,18 @@ if (is_array($activeConversation) && $currentUserId > 0) {
     );
 }
 
-$activeProvider = is_array($activeConversation) ? (string) $activeConversation['provider'] : $provider;
+$activeProvider = is_array($activeConversation)
+    ? (string) $activeConversation['provider']
+    : (is_array($activeGroup) ? 'pilot_status' : $provider);
 $leadFeedVersion = whatsapp_page_lead_feed_version($leads);
+
+if ($canManageSales) {
+    $leadFeedVersion = hash(
+        'sha256',
+        $leadFeedVersion . '|' . crm_manager_monitor_feed_version($pdo)
+    );
+}
+
 $whatsappTemplates = crm_read_whatsapp_templates(true);
 $hasApprovedWhatsAppTemplate = false;
 
@@ -1452,9 +1553,9 @@ if ($isWaConversationFragment) {
     <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken) ?>" />
     <title>WhatsApp | MM Design</title>
     <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v7" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20260912-manager-theme-v8" />
   </head>
-  <body class="whatsapp-page whatsapp-crm-page" data-wa-initial-view="<?= is_array($activeLead) ? 'thread' : 'inbox' ?>" data-wa-mobile-view="<?= is_array($activeLead) ? 'thread' : 'inbox' ?>" data-wa-active-lead-id="<?= htmlspecialchars((string) ($activeLead['id'] ?? '')) ?>" data-wa-incoming-signature="<?= htmlspecialchars(is_array($activeLead) ? crm_whatsapp_incoming_signature($activeLead) : '') ?>" data-wa-lead-feed-version="<?= htmlspecialchars($leadFeedVersion) ?>">
+  <body class="whatsapp-page whatsapp-crm-page" data-wa-initial-view="<?= is_array($activeLead) || is_array($activeGroup) ? 'thread' : 'inbox' ?>" data-wa-mobile-view="<?= is_array($activeLead) || is_array($activeGroup) ? 'thread' : 'inbox' ?>" data-wa-active-lead-id="<?= htmlspecialchars((string) ($activeLead['id'] ?? '')) ?>" data-wa-active-group-id="<?= is_array($activeGroup) ? (int) ($activeGroup['group_id'] ?? 0) : '' ?>" data-wa-incoming-signature="<?= htmlspecialchars(is_array($activeLead) ? crm_whatsapp_incoming_signature($activeLead) : '') ?>" data-wa-lead-feed-version="<?= htmlspecialchars($leadFeedVersion) ?>">
     <main class="wa-web-shell" aria-label="Atendimento WhatsApp do CRM">
       <aside class="sidebar" aria-label="Navegação do CRM">
         <a class="brand" href="index.php" aria-label="Início" data-no-navigation-prefetch>
@@ -1509,8 +1610,8 @@ if ($isWaConversationFragment) {
       </aside>
 
       <nav class="wa-mobile-tabs" aria-label="Área do atendimento no celular">
-        <button type="button" class="<?= !is_array($activeLead) ? 'is-active' : '' ?>" data-wa-mobile-view="inbox">Conversas</button>
-        <button type="button" class="<?= is_array($activeLead) ? 'is-active' : '' ?>" data-wa-mobile-view="thread">Atendimento</button>
+        <button type="button" class="<?= !is_array($activeLead) && !is_array($activeGroup) ? 'is-active' : '' ?>" data-wa-mobile-view="inbox">Conversas</button>
+        <button type="button" class="<?= is_array($activeLead) || is_array($activeGroup) ? 'is-active' : '' ?>" data-wa-mobile-view="thread">Atendimento</button>
         <button type="button" data-wa-mobile-view="lead">Dados do lead</button>
         <a href="index.php" aria-label="Abrir tela de contatos" data-no-navigation-prefetch>Contatos</a>
       </nav>
@@ -1542,12 +1643,36 @@ if ($isWaConversationFragment) {
         </label>
 
         <div class="wa-chat-list">
-          <?php if (count($conversations) === 0): ?>
+          <?php if (count($conversations) === 0 && count($groupConversations) === 0): ?>
             <div class="wa-empty-list">
               <strong>Nenhuma conversa</strong>
               <span>As mensagens recebidas pelo WhatsApp aparecem aqui.</span>
             </div>
           <?php endif; ?>
+
+          <?php foreach ($groupConversations as $groupConversation): ?>
+            <?php
+              $groupId = (int) ($groupConversation['group_id'] ?? 0);
+              $groupName = (string) ($groupConversation['name'] ?? 'Grupo sem nome');
+              $isActiveGroup = is_array($activeGroup) && $groupId === (int) ($activeGroup['group_id'] ?? 0);
+            ?>
+            <a
+              class="wa-chat-item wa-group-chat-item <?= $isActiveGroup ? 'active' : '' ?>"
+              href="whatsapp.php?provider=<?= htmlspecialchars($providerFilter) ?>&group=<?= $groupId ?>"
+              data-no-navigation-prefetch
+              data-wa-group-chat
+              data-search="<?= htmlspecialchars(strtolower($groupName . ' ' . (string) ($groupConversation['preview'] ?? ''))) ?>"
+            >
+              <span class="wa-avatar wa-group-avatar" aria-hidden="true">G</span>
+              <span class="wa-chat-summary">
+                <strong><?= htmlspecialchars($groupName) ?></strong>
+                <small><?= htmlspecialchars(whatsapp_page_short_text((string) ($groupConversation['preview'] ?? ''))) ?></small>
+              </span>
+              <span class="wa-chat-meta">
+                <time><?= htmlspecialchars(whatsapp_page_time_label((string) ($groupConversation['last_at'] ?? ''))) ?></time>
+              </span>
+            </a>
+          <?php endforeach; ?>
 
           <?php foreach ($conversations as $conversation): ?>
             <?php $lead = $conversation['lead']; ?>
@@ -1583,7 +1708,54 @@ if ($isWaConversationFragment) {
       </aside>
 
       <section class="wa-thread" aria-label="Conversa selecionada">
-        <?php if (!is_array($activeLead)): ?>
+        <?php if (is_array($activeGroup)): ?>
+          <header class="wa-thread-header">
+            <button class="wa-mobile-thread-back" type="button" data-wa-mobile-back hidden aria-label="Voltar para conversas" title="Voltar para conversas">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" aria-hidden="true">
+                <path d="m15 5-7 7 7 7" />
+              </svg>
+            </button>
+            <span class="wa-avatar wa-group-avatar large" aria-hidden="true">G</span>
+            <div>
+              <h2><?= htmlspecialchars((string) ($activeGroup['name'] ?? 'Grupo sem nome')) ?></h2>
+              <p>Grupo WhatsApp · somente leitura</p>
+            </div>
+          </header>
+
+          <div class="wa-message-surface">
+            <div class="wa-day-chip">Mensagens do grupo</div>
+
+            <?php if ($activeGroupMessages === []): ?>
+              <div class="wa-message wa-message-note">
+                <p>Este grupo ainda não tem mensagens registradas.</p>
+              </div>
+            <?php endif; ?>
+
+            <?php foreach ($activeGroupMessages as $message): ?>
+              <?php
+                $senderName = trim((string) ($message['sender_name'] ?? '')) ?: 'Participante';
+                $messageDomId = whatsapp_page_message_dom_id($message);
+              ?>
+              <article<?= $messageDomId !== '' ? ' id="' . htmlspecialchars($messageDomId, ENT_QUOTES, 'UTF-8') . '"' : '' ?> class="wa-message wa-message-<?= htmlspecialchars((string) ($message['direction'] ?? 'incoming')) ?>">
+                <strong><?= htmlspecialchars($senderName) ?></strong>
+                <?php if (trim((string) ($message['text'] ?? '')) !== ''): ?>
+                  <p><?= nl2br(htmlspecialchars((string) $message['text'])) ?></p>
+                <?php endif; ?>
+                <footer>
+                  <span><?= htmlspecialchars((string) ($message['label'] ?? 'Recebida')) ?></span>
+                  <time><?= htmlspecialchars(whatsapp_page_time_label((string) ($message['at'] ?? ''))) ?></time>
+                </footer>
+              </article>
+            <?php endforeach; ?>
+          </div>
+
+          <div class="wa-thread-bottom">
+            <div class="wa-window-banner is-closed">
+              <span class="wa-window-icon">i</span>
+              <div><strong>Monitoramento de grupo</strong><span>As mensagens são exibidas para leitura e análise.</span></div>
+            </div>
+          </div>
+        <?php elseif (!is_array($activeLead)): ?>
           <div class="wa-no-thread">
             <h2>Selecione uma conversa</h2>
             <p>Quando uma mensagem chegar pelo webhook, a conversa aparece nesta tela.</p>
@@ -1718,7 +1890,14 @@ if ($isWaConversationFragment) {
       </section>
 
       <aside class="wa-lead-panel" aria-label="Informações e recursos do lead">
-        <?php if (!is_array($activeLead)): ?>
+        <?php if (is_array($activeGroup)): ?>
+          <section class="wa-lead-panel-empty">
+            <h2>Grupo</h2>
+            <p><?= htmlspecialchars((string) ($activeGroup['name'] ?? 'Grupo sem nome')) ?></p>
+            <small>As mensagens e os participantes são acompanhados no Monitoramento.</small>
+            <a href="manager-group.php?id=<?= (int) ($activeGroup['group_id'] ?? 0) ?>">Abrir detalhes do grupo</a>
+          </section>
+        <?php elseif (!is_array($activeLead)): ?>
           <section class="wa-lead-panel-empty">
             <h2>Lead</h2>
             <p>Selecione uma conversa para visualizar os dados comerciais.</p>
@@ -2198,7 +2377,7 @@ if ($isWaConversationFragment) {
 
         const query = searchInput.value.trim().toLocaleLowerCase("pt-BR");
 
-        document.querySelectorAll("[data-wa-chat]").forEach((chat) => {
+        document.querySelectorAll("[data-wa-chat], [data-wa-group-chat]").forEach((chat) => {
           chat.hidden = query !== "" && !chat.dataset.search.includes(query);
         });
       };
@@ -2222,6 +2401,11 @@ if ($isWaConversationFragment) {
       let inboxRefreshInFlight = false;
 
       const refreshConversationList = async () => {
+        if (document.body.dataset.waActiveGroupId) {
+          window.location.reload();
+          return;
+        }
+
         const endpoint = new URL(window.location.href);
         endpoint.searchParams.set("_wa_inbox", String(Date.now()));
 

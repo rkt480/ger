@@ -24,7 +24,7 @@ try {
     $db = crm_db();
     echo "Conexão MySQL: OK\n";
 
-    $tables = ['leads', 'crm_settings', 'crm_users', 'crm_password_reset_tokens', 'lead_assignment_logs', 'lead_timeline_events', 'kanban_columns', 'followup_flows', 'followup_steps', 'followup_queue', 'followup_step_history', 'manager_clients', 'manager_groups', 'manager_group_participants', 'manager_group_messages', 'manager_ai_analyses', 'manager_alerts', 'manager_report_requirements'];
+    $tables = ['leads', 'crm_settings', 'crm_users', 'crm_password_reset_tokens', 'lead_assignment_logs', 'lead_timeline_events', 'kanban_columns', 'followup_flows', 'followup_steps', 'followup_queue', 'followup_step_history', 'openai_coach_documents', 'openai_coach_analyses', 'manager_clients', 'manager_groups', 'manager_group_participants', 'manager_group_messages', 'manager_ai_analyses', 'manager_alerts', 'manager_report_requirements'];
 
     foreach ($tables as $table) {
         $stmt = $db->query('SELECT COUNT(*) AS total FROM ' . $table);

@@ -13,8 +13,10 @@ alertas para gestores.
 
    `/gerente/api/pilot-status-webhook.php`
 
-5. Configure um segredo de webhook sempre que a conta/provedor oferecer essa
-   opção.
+5. No CRM, em Configurações > Pilot Status, informe a API key e marque
+   “Aceitar webhook sem senha da Pilot Status” quando o painel da Pilot Status
+   não oferecer segredo. Se o provedor passar a oferecer um token, desmarque a
+   opção e configure o segredo no CRM.
 
 As chaves de API ficam somente no backend. O frontend recebe apenas dados
 necessários para a tela e nunca recebe tokens, segredos ou credenciais.
@@ -23,6 +25,8 @@ necessários para a tela e nunca recebe tokens, segredos ou credenciais.
 
 - `/gerente/index.php`: entrada do gestor, com cards por cliente e grupos monitorados;
 - `/gerente/manager-group.php?id=ID`: conversa normalizada e alertas de um grupo;
+- `/gerente/whatsapp.php`: conversas individuais e grupos do Pilot Status. Os
+  grupos aparecem com nome, prévia e histórico em modo somente leitura;
 - `/gerente/index.php?view=kanban`: Kanban comercial original, mantido separado do monitoramento.
 
 ## Fluxo das mensagens
@@ -42,4 +46,6 @@ autorizada, para que a resposta do webhook permaneça rápida e confiável.
 - `manager_alerts`: alertas revisáveis pelo gestor;
 - `manager_report_requirements`: regras para relatórios esperados.
 
-O CRM original da MM Design não é alterado por este projeto.
+As mensagens de grupo ficam separadas dos leads comerciais. Assim, o
+remetente de uma mensagem de grupo não é criado como um contato individual no
+CRM; contatos individuais continuam seguindo o fluxo comercial original.

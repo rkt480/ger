@@ -4971,6 +4971,10 @@ textarea:focus {
   height: 50px;
 }
 
+.whatsapp-crm-page .wa-group-avatar {
+  background: #2563eb;
+}
+
 .whatsapp-crm-page .wa-chat-summary strong {
   color: var(--text);
   font-size: 0.94rem;
@@ -5106,6 +5110,13 @@ textarea:focus {
   color: var(--text);
   font-size: 0.94rem;
   line-height: 1.45;
+}
+
+.whatsapp-crm-page .wa-message > strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #0f766e;
+  font-size: 0.78rem;
 }
 
 .whatsapp-crm-page .wa-message-quote {

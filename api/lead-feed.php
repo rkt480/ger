@@ -22,9 +22,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 try {
+    $version = crm_read_lead_feed_version();
+
+    if (crm_current_user_can_manage_sales()) {
+        $version = hash(
+            'sha256',
+            $version . '|' . crm_manager_monitor_feed_version(crm_db())
+        );
+    }
+
     echo json_encode([
         'ok' => true,
-        'version' => crm_read_lead_feed_version(),
+        'version' => $version,
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 } catch (Throwable $error) {
     http_response_code(422);
