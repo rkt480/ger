@@ -96,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $settings['whatsapp_after_hours_message'] = trim((string) ($_POST['whatsapp_after_hours_message'] ?? ''));
         $settings['pilot_status_base_url'] = crm_normalize_url_base((string) ($_POST['pilot_status_base_url'] ?? ''), 'https://pilotstatus.com.br/v1');
         $pilotStatusWebhookSecret = trim((string) ($_POST['pilot_status_webhook_secret'] ?? ''));
+        $settings['pilot_status_allow_unsigned_webhook'] = (($_POST['pilot_status_allow_unsigned_webhook'] ?? '') === '1');
 
         if ($pilotStatusWebhookSecret !== '') {
             $settings['pilot_status_webhook_secret'] = $pilotStatusWebhookSecret;
@@ -339,7 +340,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?= $whatsappConfigured ? 'Configurado' : 'Inativo' ?>
                   </span>
                 </header>
-                <p class="integration-description">Escolha entre a Meta Cloud API e a Pilot Status. As duas opções usam conexões oficiais do WhatsApp.</p>
+                <p class="integration-description">Escolha entre a Meta Cloud API e a Pilot Status. A Pilot Status funciona com o número conectado por ela, inclusive em conexões não oficiais.</p>
 
                 <form class="flow-form" method="post">
                   <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
@@ -348,7 +349,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Provedor de envio
                     <select name="whatsapp_provider">
                       <option value="meta_cloud" <?= $whatsappProvider === 'meta_cloud' ? 'selected' : '' ?>>Meta Cloud API / número oficial</option>
-                      <option value="pilot_status" <?= $whatsappProvider === 'pilot_status' ? 'selected' : '' ?>>Pilot Status / API oficial</option>
+                      <option value="pilot_status" <?= $whatsappProvider === 'pilot_status' ? 'selected' : '' ?>>Pilot Status / número conectado</option>
                     </select>
                   </label>
                   <div class="settings-subgroup">
@@ -432,7 +433,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   <div class="settings-subgroup">
                     <div>
                       <p class="integration-kicker">Pilot Status</p>
-                      <h3>API oficial</h3>
+                      <h3>Conexão Pilot Status</h3>
                     </div>
                     <label>
                       Base URL
@@ -443,15 +444,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       <input type="password" name="pilot_status_api_key" value="" placeholder="<?= $pilotStatusSettings['api_key'] !== '' ? 'API key salva. Preencha só para trocar.' : 'Cole a chave ps_ do número' ?>" autocomplete="off" />
                     </label>
                     <label>
-                      Segredo do webhook (obrigatório em produção)
+                      Segredo do webhook (opcional)
                       <input type="password" name="pilot_status_webhook_secret" value="" placeholder="<?= $pilotStatusWebhookSecretConfigured ? 'Segredo salvo. Preencha só para trocar.' : 'Configure um segredo forte' ?>" autocomplete="new-password" />
+                    </label>
+                    <label class="checkbox-field">
+                      <input type="checkbox" name="pilot_status_allow_unsigned_webhook" value="1" <?= !empty($pilotStatusSettings['allow_unsigned_webhook']) ? 'checked' : '' ?> />
+                      <span>Aceitar webhook sem senha da Pilot Status</span>
                     </label>
                     <?php if ($pilotStatusWebhookUrl !== ''): ?>
                       <label>
                         URL do webhook Pilot Status
                         <input type="url" value="<?= htmlspecialchars($pilotStatusWebhookUrl) ?>" readonly />
                       </label>
-                      <small class="settings-help">No painel da Pilot Status, cadastre esta URL e habilite os eventos de recebimento de mensagens e grupos. Em ambiente público, configure também o segredo/token do webhook.</small>
+                      <small class="settings-help">No painel da Pilot Status, cadastre esta URL e habilite os eventos de recebimento de mensagens e grupos. Como o painel pode não oferecer senha, marque a opção acima. Se você configurar um segredo/token depois, desmarque essa opção.</small>
                     <?php endif; ?>
                   </div>
 

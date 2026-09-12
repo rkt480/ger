@@ -2171,10 +2171,10 @@ function pilot_status_validate_webhook(string $body, array $payload): bool
     $secret = trim((string) $settings['webhook_secret']);
 
     if ($secret === '') {
-        // Fail closed on public hosts. A webhook without a token or signature
-        // can be forged by anyone who discovers the URL. Local development
-        // remains convenient, but production must configure a secret.
-        return crm_is_local_host();
+        // Pilot Status webhooks created from its dashboard may not include a
+        // token or signature. Keep the safer local-only fallback by default,
+        // but allow an administrator to explicitly enable this provider mode.
+        return crm_is_local_host() || !empty($settings['allow_unsigned_webhook']);
     }
 
     $plainCandidates = [

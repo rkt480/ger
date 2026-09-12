@@ -458,6 +458,9 @@ function crm_pilot_status_settings(): array
     $baseUrl = trim((string) ($settings['pilot_status_base_url'] ?? ''));
     $apiKey = trim((string) ($settings['pilot_status_api_key'] ?? ''));
     $webhookSecret = trim((string) ($settings['pilot_status_webhook_secret'] ?? ''));
+    $allowUnsignedWebhook = array_key_exists('pilot_status_allow_unsigned_webhook', $settings)
+        ? !empty($settings['pilot_status_allow_unsigned_webhook'])
+        : false;
 
     if ($baseUrl === '') {
         $baseUrl = trim((string) ($config['base_url'] ?? ''));
@@ -475,6 +478,7 @@ function crm_pilot_status_settings(): array
         'base_url' => crm_normalize_url_base($baseUrl, 'https://pilotstatus.com.br/v1'),
         'api_key' => $apiKey,
         'webhook_secret' => $webhookSecret,
+        'allow_unsigned_webhook' => $allowUnsignedWebhook,
     ];
 }
 
