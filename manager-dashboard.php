@@ -20,6 +20,7 @@ $groups = $monitor['groups'];
 $stats = $monitor['stats'];
 $unassignedGroups = $monitor['unassigned_groups'];
 $activeClients = crm_manager_monitor_read_active_clients($pdo);
+$managerFeedVersion = crm_manager_monitor_feed_version($pdo);
 $groupsByClient = [];
 
 foreach ($groups as $group) {
@@ -106,7 +107,7 @@ $clientMonitorStatus = static function (array $client): string {
     <script src="./assets/theme.js?v=20260912-theme-v2"></script>
     <link rel="stylesheet" href="./assets/crm.css?v=20260912-contrast-v1" />
   </head>
-  <body class="settings-page manager-monitor-page">
+  <body class="settings-page manager-monitor-page" data-manager-feed-version="<?= htmlspecialchars($managerFeedVersion) ?>">
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegação do gerente">
         <a class="brand" href="manager-dashboard.php" aria-label="Início">
@@ -326,7 +327,7 @@ $clientMonitorStatus = static function (array $client): string {
       </div>
     </div>
     <script src="./assets/crm.js?v=20260911-coach-v5"></script>
-    <script src="./assets/manager-dashboard.js?v=20260912-theme-v5"></script>
+    <script src="./assets/manager-dashboard.js?v=20260913-live-feed-v1"></script>
     <script src="./assets/crm-navigation.js?v=20260812-fast-navigation-v3"></script>
   </body>
 </html>

@@ -30,6 +30,92 @@
   window.setInterval(render, 30000);
 })();
 
+// Atualiza os cards quando o webhook registra uma nova mensagem em qualquer
+// grupo monitorado, sem exigir que o gestor recarregue a página manualmente.
+if (
+  document.body.classList.contains('manager-monitor-page')
+  && !document.body.classList.contains('manager-group-page')
+) {
+  let managerFeedVersion = document.body.dataset.managerFeedVersion || '';
+  let managerFeedInFlight = false;
+  let managerFeedReloadScheduled = false;
+
+  const managerFeedHasOpenEditor = () => {
+    if (document.querySelector('.utility-dialog:not([hidden])')) {
+      return true;
+    }
+
+    const activeElement = document.activeElement;
+    return Boolean(activeElement && activeElement.matches('input, textarea, select'));
+  };
+
+  const showManagerFeedRefreshNotice = () => {
+    let notice = document.querySelector('[data-manager-feed-refresh]');
+
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.className = 'live-refresh-toast';
+      notice.dataset.managerFeedRefresh = 'true';
+      notice.setAttribute('role', 'status');
+      document.body.appendChild(notice);
+    }
+
+    notice.textContent = 'Nova mensagem recebida. Atualizando…';
+    notice.hidden = false;
+  };
+
+  const syncManagerFeed = async () => {
+    if (
+      managerFeedInFlight
+      || managerFeedReloadScheduled
+      || document.visibilityState !== 'visible'
+      || managerFeedHasOpenEditor()
+    ) {
+      return;
+    }
+
+    managerFeedInFlight = true;
+
+    try {
+      const endpoint = new URL('./api/manager-feed.php', window.location.href);
+      endpoint.searchParams.set('_', String(Date.now()));
+      const response = await fetch(endpoint, {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || data.ok !== true || !data.version) {
+        return;
+      }
+
+      if (managerFeedVersion === '') {
+        managerFeedVersion = data.version;
+        return;
+      }
+
+      if (managerFeedVersion !== data.version) {
+        managerFeedVersion = data.version;
+        managerFeedReloadScheduled = true;
+        showManagerFeedRefreshNotice();
+        window.setTimeout(() => window.location.reload(), 350);
+      }
+    } catch (error) {
+      // Uma falha pontual será recuperada na próxima verificação.
+    } finally {
+      managerFeedInFlight = false;
+    }
+  };
+
+  syncManagerFeed();
+  window.setInterval(syncManagerFeed, 3000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      syncManagerFeed();
+    }
+  });
+}
+
 (() => {
   const buttons = document.querySelectorAll('[data-manager-resolve-alert]');
   const csrfToken = document.querySelector("meta[name='csrf-token']")?.content || '';
