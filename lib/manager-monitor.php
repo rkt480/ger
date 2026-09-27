@@ -934,8 +934,6 @@ function crm_manager_monitor_ingest_payload(array $payload): array
  */
 function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): array
 {
-    crm_manager_monitor_ensure_schema($pdo);
-
     $search = crm_manager_monitor_limit($search, 120);
     $hasSearch = $search !== '';
     $searchLike = '%' . $search . '%';
@@ -946,17 +944,29 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
             c.name,
             c.external_ref,
             c.active,
-            COUNT(DISTINCT g.id) AS group_count,
-            COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") THEN a.id END) AS open_alerts,
-            COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") AND a.severity = "critical" THEN a.id END) AS critical_alerts,
-            COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") AND a.severity IN ("high", "critical") THEN a.id END) AS priority_alerts,
-            MAX(g.last_message_at) AS last_message_at
+            COALESCE(g.group_count, 0) AS group_count,
+            COALESCE(a.open_alerts, 0) AS open_alerts,
+            COALESCE(a.critical_alerts, 0) AS critical_alerts,
+            COALESCE(a.priority_alerts, 0) AS priority_alerts,
+            g.last_message_at
         FROM manager_clients c
-        LEFT JOIN manager_groups g ON g.client_id = c.id AND g.active = 1
-        LEFT JOIN manager_alerts a ON a.client_id = c.id
+        LEFT JOIN (
+            SELECT client_id, COUNT(*) AS group_count, MAX(last_message_at) AS last_message_at
+            FROM manager_groups
+            WHERE active = 1
+            GROUP BY client_id
+        ) g ON g.client_id = c.id
+        LEFT JOIN (
+            SELECT
+                client_id,
+                COUNT(CASE WHEN status IN ("open", "acknowledged", "in_progress") THEN 1 END) AS open_alerts,
+                COUNT(CASE WHEN status IN ("open", "acknowledged", "in_progress") AND severity = "critical" THEN 1 END) AS critical_alerts,
+                COUNT(CASE WHEN status IN ("open", "acknowledged", "in_progress") AND severity IN ("high", "critical") THEN 1 END) AS priority_alerts
+            FROM manager_alerts
+            GROUP BY client_id
+        ) a ON a.client_id = c.id
         WHERE c.active = 1
           AND (:has_search = 0 OR c.name LIKE :search_name OR c.external_ref LIKE :search_ref)
-        GROUP BY c.id, c.name, c.external_ref, c.active
         ORDER BY priority_alerts DESC, critical_alerts DESC, open_alerts DESC, c.name ASC';
     $clientQuery = $pdo->prepare($clientSql);
     $clientQuery->bindValue(':has_search', $hasSearch ? 1 : 0, PDO::PARAM_INT);
@@ -974,11 +984,11 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
             g.name,
             g.last_message_at,
             c.name AS client_name,
-            COUNT(DISTINCT m.id) AS message_count,
-            SUM(CASE WHEN m.analysis_status IN ("pending", "processing") THEN 1 ELSE 0 END) AS pending_analysis,
-            COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") THEN a.id END) AS open_alerts,
-            COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") AND a.severity = "critical" THEN a.id END) AS critical_alerts,
-            COUNT(DISTINCT CASE WHEN a.status IN ("open", "acknowledged", "in_progress") AND a.severity IN ("high", "critical") THEN a.id END) AS priority_alerts,
+            COALESCE(m.message_count, 0) AS message_count,
+            COALESCE(m.pending_analysis, 0) AS pending_analysis,
+            COALESCE(a.open_alerts, 0) AS open_alerts,
+            COALESCE(a.critical_alerts, 0) AS critical_alerts,
+            COALESCE(a.priority_alerts, 0) AS priority_alerts,
             (
                 SELECT a2.id
                 FROM manager_alerts a2
@@ -1031,8 +1041,23 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
             ) AS last_sender_name
         FROM manager_groups g
         LEFT JOIN manager_clients c ON c.id = g.client_id
-        LEFT JOIN manager_group_messages m ON m.group_id = g.id
-        LEFT JOIN manager_alerts a ON a.group_id = g.id
+        LEFT JOIN (
+            SELECT
+                group_id,
+                COUNT(*) AS message_count,
+                COUNT(CASE WHEN analysis_status IN ("pending", "processing") THEN 1 END) AS pending_analysis
+            FROM manager_group_messages
+            GROUP BY group_id
+        ) m ON m.group_id = g.id
+        LEFT JOIN (
+            SELECT
+                group_id,
+                COUNT(CASE WHEN status IN ("open", "acknowledged", "in_progress") THEN 1 END) AS open_alerts,
+                COUNT(CASE WHEN status IN ("open", "acknowledged", "in_progress") AND severity = "critical" THEN 1 END) AS critical_alerts,
+                COUNT(CASE WHEN status IN ("open", "acknowledged", "in_progress") AND severity IN ("high", "critical") THEN 1 END) AS priority_alerts
+            FROM manager_alerts
+            GROUP BY group_id
+        ) a ON a.group_id = g.id
         WHERE g.active = 1
           AND (
               :has_search = 0
@@ -1040,7 +1065,6 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
               OR c.name LIKE :search_client
               OR g.external_group_id LIKE :search_external
           )
-        GROUP BY g.id, g.client_id, g.provider_number_id, g.external_group_id, g.name, g.last_message_at, g.created_at, c.name
         ORDER BY priority_alerts DESC, critical_alerts DESC, open_alerts DESC, COALESCE(g.last_message_at, g.created_at) DESC, g.name ASC';
     $groupQuery = $pdo->prepare($groupSql);
     $groupQuery->bindValue(':has_search', $hasSearch ? 1 : 0, PDO::PARAM_INT);
@@ -1054,7 +1078,6 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
         SELECT
             (SELECT COUNT(*) FROM manager_clients WHERE active = 1) AS clients,
             (SELECT COUNT(*) FROM manager_groups WHERE active = 1) AS groups,
-            (SELECT COUNT(*) FROM manager_group_messages) AS messages,
             (SELECT COUNT(*)
              FROM manager_group_messages m
              INNER JOIN manager_groups g ON g.id = m.group_id
@@ -1069,6 +1092,10 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
         $groups,
         static fn(array $group): bool => (int) ($group['client_id'] ?? 0) === 0
     ));
+    $messageCount = array_sum(array_map(
+        static fn(array $group): int => (int) ($group['message_count'] ?? 0),
+        $groups
+    ));
 
     return [
         'clients' => $clients,
@@ -1077,7 +1104,7 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
         'stats' => [
             'clients' => (int) ($stats['clients'] ?? 0),
             'groups' => (int) ($stats['groups'] ?? 0),
-            'messages' => (int) ($stats['messages'] ?? 0),
+            'messages' => $messageCount,
             'pending_analysis' => (int) ($stats['pending_analysis'] ?? 0),
             'open_alerts' => (int) ($stats['open_alerts'] ?? 0),
             'critical_alerts' => (int) ($stats['critical_alerts'] ?? 0),
@@ -1094,33 +1121,27 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
  */
 function crm_manager_monitor_feed_version(PDO $pdo): string
 {
-    crm_manager_monitor_ensure_schema($pdo);
     $query = $pdo->query(
-        'SELECT id, name, last_message_at, updated_at
+        'SELECT COUNT(*) AS total_groups,
+                COALESCE(MAX(id), 0) AS latest_group_id,
+                COALESCE(MAX(updated_at), "") AS latest_updated_at
          FROM manager_groups
-         WHERE active = 1
-         ORDER BY id ASC'
+         WHERE active = 1'
     );
-    $rows = [];
-
-    foreach ($query->fetchAll(PDO::FETCH_ASSOC) as $group) {
-        $rows[] = [
-            (int) ($group['id'] ?? 0),
-            (string) ($group['name'] ?? ''),
-            (string) ($group['last_message_at'] ?? ''),
-            (string) ($group['updated_at'] ?? ''),
-        ];
-    }
+    $marker = $query->fetch(PDO::FETCH_ASSOC) ?: [];
 
     return hash(
         'sha256',
-        json_encode($rows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: ''
+        json_encode([
+            (int) ($marker['total_groups'] ?? 0),
+            (int) ($marker['latest_group_id'] ?? 0),
+            (string) ($marker['latest_updated_at'] ?? ''),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: ''
     );
 }
 
 function crm_manager_monitor_read_active_clients(PDO $pdo): array
 {
-    crm_manager_monitor_ensure_schema($pdo);
     $query = $pdo->query('SELECT id, name FROM manager_clients WHERE active = 1 ORDER BY name ASC');
 
     return $query->fetchAll(PDO::FETCH_ASSOC);
@@ -1207,7 +1228,6 @@ function crm_manager_monitor_link_group_to_client(PDO $pdo, int $groupId, int $c
 
 function crm_manager_monitor_read_group(PDO $pdo, int $groupId): ?array
 {
-    crm_manager_monitor_ensure_schema($pdo);
     $query = $pdo->prepare(
         'SELECT g.*, c.name AS client_name
          FROM manager_groups g
@@ -1223,7 +1243,6 @@ function crm_manager_monitor_read_group(PDO $pdo, int $groupId): ?array
 
 function crm_manager_monitor_read_group_messages(PDO $pdo, int $groupId, int $limit = 150): array
 {
-    crm_manager_monitor_ensure_schema($pdo);
     $limit = max(20, min($limit, 500));
     $query = $pdo->prepare(
         'SELECT id, sender_name, sender_phone, message_type, body, media_metadata, from_me, sent_at, received_at, analysis_status
@@ -1240,7 +1259,6 @@ function crm_manager_monitor_read_group_messages(PDO $pdo, int $groupId, int $li
 
 function crm_manager_monitor_read_group_alerts(PDO $pdo, int $groupId): array
 {
-    crm_manager_monitor_ensure_schema($pdo);
     $query = $pdo->prepare(
         'SELECT id, alert_type, severity, status, title, description, evidence, confidence, resolved_at, resolution_note, created_at, updated_at
          FROM manager_alerts
@@ -1255,7 +1273,6 @@ function crm_manager_monitor_read_group_alerts(PDO $pdo, int $groupId): array
 
 function crm_manager_monitor_read_group_resolutions(PDO $pdo, int $groupId, int $limit = 5): array
 {
-    crm_manager_monitor_ensure_schema($pdo);
     $limit = max(1, min($limit, 20));
     $query = $pdo->prepare(
         'SELECT id, title, description, evidence, resolution_note, resolved_at
@@ -1349,7 +1366,6 @@ function crm_manager_monitor_resolve_alert(PDO $pdo, int $alertId, ?int $userId 
 
 function crm_manager_monitor_read_latest_group_analysis(PDO $pdo, int $groupId): ?array
 {
-    crm_manager_monitor_ensure_schema($pdo);
     $query = $pdo->prepare(
         'SELECT id, group_id, message_id, model, prompt_version, status, severity,
                 categories, summary, evidence, confidence, result_json, error_message, created_at
