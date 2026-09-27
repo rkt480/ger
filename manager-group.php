@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/storage.php';
-require_once __DIR__ . '/lib/pilot-status.php';
 
 crm_require_sales_manager();
 
@@ -16,7 +15,6 @@ if (!is_int($groupId)) {
 }
 
 $pdo = crm_db();
-$pdo = crm_manager_monitor_refresh_missing_group_names($pdo);
 $group = crm_manager_monitor_read_group($pdo, $groupId);
 
 if ($group === null) {
