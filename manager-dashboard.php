@@ -18,6 +18,10 @@ $groups = $monitor['groups'];
 $stats = $monitor['stats'];
 $unassignedGroups = $monitor['unassigned_groups'];
 $activeClients = crm_manager_monitor_read_active_clients($pdo);
+$activeManagers = crm_manager_monitor_read_active_managers($pdo);
+$isAdmin = crm_current_user_is_admin();
+$managerUserKey = (int) ($currentUser['id'] ?? 0);
+$managerUserKey = $managerUserKey > 0 ? (string) $managerUserKey : 'session';
 $managerFeedVersion = crm_manager_monitor_feed_version($pdo);
 $groupsByClient = [];
 
@@ -35,6 +39,7 @@ $flashMessages = [
     'client' => 'Cliente cadastrado. Agora você pode vincular os grupos recebidos.',
     'client_group' => 'Cliente cadastrado e grupo vinculado com sucesso.',
     'group' => 'Grupo vinculado ao cliente.',
+    'manager' => 'Gestor vinculado ao cliente.',
 ];
 $errorMessages = [
     'invalid_client' => 'Informe um nome válido para o cliente.',
@@ -43,6 +48,8 @@ $errorMessages = [
     'save_client_group' => 'Não foi possível cadastrar o cliente e vincular o grupo agora.',
     'invalid_group' => 'Selecione um grupo e um cliente válidos.',
     'link_group' => 'Não foi possível vincular o grupo agora.',
+    'invalid_manager' => 'Selecione um gestor ativo válido.',
+    'assign_manager' => 'Não foi possível vincular o gestor agora.',
 ];
 
 $formatDate = static function (mixed $value): string {
@@ -103,9 +110,9 @@ $clientMonitorStatus = static function (array $client): string {
     <meta name="theme-color" content="#070a10" />
     <title>Monitoramento | Gerente</title>
     <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260912-contrast-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20260927-manager-view-v1" />
   </head>
-  <body class="settings-page manager-monitor-page" data-manager-feed-version="<?= htmlspecialchars($managerFeedVersion) ?>">
+  <body class="settings-page manager-monitor-page" data-manager-feed-version="<?= htmlspecialchars($managerFeedVersion) ?>" data-manager-user-key="<?= htmlspecialchars($managerUserKey) ?>">
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegação do gerente">
         <a class="brand" href="manager-dashboard.php" aria-label="Início">
@@ -138,6 +145,7 @@ $clientMonitorStatus = static function (array $client): string {
             <a href="index.php?view=kanban">Kanban comercial</a>
             <a href="dashboard.php">Indicadores</a>
             <?php if (crm_current_user_is_admin()): ?>
+              <a href="commercial.php?tab=usuarios&role=gestor">Gestores</a>
               <a href="settings.php">Configurações</a>
             <?php endif; ?>
           </nav>
@@ -151,6 +159,7 @@ $clientMonitorStatus = static function (array $client): string {
           </div>
           <nav>
             <button type="button" data-open-dialog="manager-client">Novo cliente</button>
+            <?php if ($isAdmin): ?><a href="commercial.php?tab=usuarios&role=gestor">Cadastrar gestor</a><?php endif; ?>
             <a href="manager-dashboard.php">Atualizar</a>
           </nav>
         </header>
@@ -196,7 +205,13 @@ $clientMonitorStatus = static function (array $client): string {
                 <p class="eyebrow">Visão por cliente</p>
                 <h2>Carteira monitorada</h2>
               </div>
-              <span class="manager-section-count"><?= count($clients) ?> cliente<?= count($clients) === 1 ? '' : 's' ?></span>
+              <div class="manager-section-actions">
+                <span class="manager-section-count"><?= count($clients) ?> cliente<?= count($clients) === 1 ? '' : 's' ?></span>
+                <div class="manager-view-toggle" role="group" aria-label="Formato da carteira">
+                  <button type="button" class="is-active" data-manager-client-view="cards" aria-pressed="true" title="Visualizar em cards">Cards</button>
+                  <button type="button" data-manager-client-view="list" aria-pressed="false" title="Visualizar em lista">Lista</button>
+                </div>
+              </div>
             </header>
 
             <?php if (count($clients) === 0): ?>
@@ -209,7 +224,7 @@ $clientMonitorStatus = static function (array $client): string {
                 <button type="button" data-open-dialog="manager-client">Cadastrar primeiro cliente</button>
               </article>
             <?php else: ?>
-              <div class="manager-client-grid">
+              <div class="manager-client-grid" data-manager-client-grid data-view-mode="cards">
                 <?php foreach ($clients as $client): ?>
                   <?php
                     $clientId = (int) ($client['id'] ?? 0);
@@ -222,6 +237,7 @@ $clientMonitorStatus = static function (array $client): string {
                       <div class="manager-client-heading">
                         <p class="manager-client-status"><span></span><?= $clientStatus === 'critical' ? 'Crítico' : ($clientStatus === 'attention' ? 'Atenção' : 'Normal') ?></p>
                         <h3><?= htmlspecialchars((string) $client['name']) ?></h3>
+                        <span class="manager-client-manager">Gestor: <?= htmlspecialchars(trim((string) ($client['manager_name'] ?? '')) ?: 'Não definido') ?></span>
                       </div>
                       <span class="manager-client-menu" aria-hidden="true">•••</span>
                     </header>
@@ -230,6 +246,20 @@ $clientMonitorStatus = static function (array $client): string {
                       <div><strong><?= (int) ($client['open_alerts'] ?? 0) ?></strong><span>alertas</span></div>
                       <div><strong><?= htmlspecialchars($formatDate($client['last_message_at'] ?? '')) ?></strong><span>última atividade</span></div>
                     </div>
+                    <?php if ($isAdmin): ?>
+                      <form class="manager-client-manager-form" method="post" action="assign-manager-client.php">
+                        <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
+                        <input type="hidden" name="client_id" value="<?= $clientId ?>" />
+                        <label for="manager-client-owner-<?= $clientId ?>">Gestor responsável</label>
+                        <select id="manager-client-owner-<?= $clientId ?>" name="manager_user_id">
+                          <option value="">Sem gestor definido</option>
+                          <?php foreach ($activeManagers as $manager): ?>
+                            <option value="<?= (int) $manager['id'] ?>" <?= (int) ($client['manager_user_id'] ?? 0) === (int) $manager['id'] ? 'selected' : '' ?>><?= htmlspecialchars((string) $manager['name']) ?></option>
+                          <?php endforeach; ?>
+                        </select>
+                        <button type="submit">Salvar</button>
+                      </form>
+                    <?php endif; ?>
                     <div class="manager-client-groups">
                       <div class="manager-card-label">Grupos do cliente</div>
                       <?php if ($clientGroups === []): ?>
@@ -317,6 +347,17 @@ $clientMonitorStatus = static function (array $client): string {
                 <p class="manager-modal-context" data-manager-client-context hidden>Este cliente será vinculado ao grupo <strong data-manager-group-name-label></strong>.</p>
                 <label class="field-wide">Nome do cliente<input type="text" name="name" maxlength="180" required placeholder="Ex: Empresa ABC" /></label>
                 <label class="field-wide">Referência interna <span class="manager-field-hint">Opcional</span><input type="text" name="external_ref" maxlength="120" placeholder="Ex: código ou identificador interno" /></label>
+                <?php if ($isAdmin): ?>
+                  <label class="field-wide">Gestor responsável <span class="manager-field-hint">Opcional</span>
+                    <select name="manager_user_id">
+                      <option value="">Sem gestor definido</option>
+                      <?php foreach ($activeManagers as $manager): ?>
+                        <option value="<?= (int) $manager['id'] ?>"><?= htmlspecialchars((string) $manager['name']) ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </label>
+                  <?php if ($activeManagers === []): ?><small class="manager-form-help">Ainda não há gestores ativos. Use “Cadastrar gestor” para criar o primeiro acesso.</small><?php endif; ?>
+                <?php endif; ?>
                 <button type="submit" data-manager-client-submit>Salvar cliente</button>
               </form>
             </div>
@@ -325,7 +366,7 @@ $clientMonitorStatus = static function (array $client): string {
       </div>
     </div>
     <script src="./assets/crm.js?v=20260911-coach-v5"></script>
-    <script src="./assets/manager-dashboard.js?v=20260913-live-feed-v1"></script>
+    <script src="./assets/manager-dashboard.js?v=20260927-manager-view-v1"></script>
     <script src="./assets/crm-navigation.js?v=20260812-fast-navigation-v3"></script>
   </body>
 </html>

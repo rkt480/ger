@@ -82,6 +82,7 @@ $statusLabel = static function (string $status): string {
     ][$status] ?? ucfirst($status !== '' ? $status : 'Aberto');
 };
 $clientName = trim((string) ($group['client_name'] ?? ''));
+$managerName = trim((string) ($group['manager_name'] ?? ''));
 $groupName = trim((string) ($group['name'] ?? 'Grupo sem nome'));
 $groupName = $groupName !== '' ? $groupName : 'Grupo sem nome';
 $latestAnalysisStatus = (string) ($latestAnalysis['status'] ?? '');
@@ -159,7 +160,7 @@ $analysisStatusLabel = $pendingAnalysisCount > 0
             <a class="manager-back-link" href="manager-dashboard.php">← Voltar para clientes</a>
             <p class="eyebrow">Conversa monitorada</p>
             <h1><?= htmlspecialchars($groupName) ?></h1>
-            <p class="page-intro"><?= $clientName !== '' ? 'Cliente: ' . htmlspecialchars($clientName) : 'Este grupo ainda não foi vinculado a um cliente.' ?></p>
+            <p class="page-intro"><?= $clientName !== '' ? 'Cliente: ' . htmlspecialchars($clientName) . ($managerName !== '' ? ' · Gestor: ' . htmlspecialchars($managerName) : '') : 'Este grupo ainda não foi vinculado a um cliente.' ?></p>
           </div>
           <span class="manager-detail-state is-<?= htmlspecialchars($groupState) ?>"><i></i><?= $groupState === 'critical' ? 'Atenção crítica' : ($groupState === 'attention' ? 'Requer atenção' : 'Sem alertas abertos') ?></span>
         </header>

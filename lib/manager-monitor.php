@@ -24,11 +24,15 @@ function crm_manager_monitor_ensure_schema(PDO $pdo): void
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             name VARCHAR(180) NOT NULL,
             external_ref VARCHAR(120) NULL,
+            manager_user_id INT NULL,
             active TINYINT(1) NOT NULL DEFAULT 1,
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL,
             INDEX idx_manager_clients_active (active, name),
-            INDEX idx_manager_clients_external_ref (external_ref)
+            INDEX idx_manager_clients_external_ref (external_ref),
+            INDEX idx_manager_clients_manager (manager_user_id, active),
+            CONSTRAINT fk_manager_clients_manager
+              FOREIGN KEY (manager_user_id) REFERENCES crm_users(id) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
         'CREATE TABLE IF NOT EXISTS manager_groups (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -175,6 +179,32 @@ function crm_manager_monitor_ensure_schema(PDO $pdo): void
 
     if (!$resolutionNoteColumn->fetch(PDO::FETCH_ASSOC)) {
         $pdo->exec('ALTER TABLE manager_alerts ADD COLUMN resolution_note TEXT NULL AFTER resolved_at');
+    }
+
+    // Existing installations predate the manager assignment on monitoring
+    // clients. Keep the migration self-contained so deployment does not
+    // require a manual ALTER TABLE before the dashboard can be opened.
+    $managerUserColumn = $pdo->query("SHOW COLUMNS FROM manager_clients LIKE 'manager_user_id'");
+
+    if (!$managerUserColumn->fetch(PDO::FETCH_ASSOC)) {
+        $pdo->exec('ALTER TABLE manager_clients ADD COLUMN manager_user_id INT NULL AFTER external_ref');
+    }
+
+    $managerUserIndex = $pdo->query("SHOW INDEX FROM manager_clients WHERE Key_name = 'idx_manager_clients_manager'");
+
+    if (!$managerUserIndex->fetch(PDO::FETCH_ASSOC)) {
+        $pdo->exec('ALTER TABLE manager_clients ADD INDEX idx_manager_clients_manager (manager_user_id, active)');
+    }
+
+    $managerClientTable = $pdo->query('SHOW CREATE TABLE manager_clients')->fetch(PDO::FETCH_ASSOC) ?: [];
+    $managerClientCreateSql = (string) ($managerClientTable['Create Table'] ?? '');
+
+    if (!str_contains($managerClientCreateSql, 'fk_manager_clients_manager')) {
+        $pdo->exec(
+            'ALTER TABLE manager_clients
+             ADD CONSTRAINT fk_manager_clients_manager
+             FOREIGN KEY (manager_user_id) REFERENCES crm_users(id) ON DELETE SET NULL'
+        );
     }
 
     $ensured = true;
@@ -943,6 +973,8 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
             c.id,
             c.name,
             c.external_ref,
+            c.manager_user_id,
+            manager.name AS manager_name,
             c.active,
             COALESCE(g.group_count, 0) AS group_count,
             COALESCE(a.open_alerts, 0) AS open_alerts,
@@ -950,6 +982,7 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
             COALESCE(a.priority_alerts, 0) AS priority_alerts,
             g.last_message_at
         FROM manager_clients c
+        LEFT JOIN crm_users manager ON manager.id = c.manager_user_id
         LEFT JOIN (
             SELECT client_id, COUNT(*) AS group_count, MAX(last_message_at) AS last_message_at
             FROM manager_groups
@@ -1147,11 +1180,45 @@ function crm_manager_monitor_read_active_clients(PDO $pdo): array
     return $query->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function crm_manager_monitor_create_client(PDO $pdo, string $name, string $externalRef = ''): int
+function crm_manager_monitor_read_active_managers(PDO $pdo): array
+{
+    $query = $pdo->query(
+        'SELECT id, name, username
+         FROM crm_users
+         WHERE active = 1 AND role = "gestor"
+         ORDER BY name ASC, username ASC'
+    );
+
+    return $query->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function crm_manager_monitor_validate_manager_id(PDO $pdo, ?int $managerUserId): ?int
+{
+    if ($managerUserId === null || $managerUserId <= 0) {
+        return null;
+    }
+
+    $query = $pdo->prepare(
+        'SELECT id
+         FROM crm_users
+         WHERE id = :id AND active = 1 AND role = "gestor"
+         LIMIT 1'
+    );
+    $query->execute(['id' => $managerUserId]);
+
+    if ((int) $query->fetchColumn() <= 0) {
+        throw new InvalidArgumentException('Gestor não encontrado ou inativo.');
+    }
+
+    return $managerUserId;
+}
+
+function crm_manager_monitor_create_client(PDO $pdo, string $name, string $externalRef = '', ?int $managerUserId = null): int
 {
     crm_manager_monitor_ensure_schema($pdo);
     $name = crm_manager_monitor_limit($name, 180);
     $externalRef = crm_manager_monitor_limit($externalRef, 120);
+    $managerUserId = crm_manager_monitor_validate_manager_id($pdo, $managerUserId);
 
     if ($name === '') {
         throw new InvalidArgumentException('Informe o nome do cliente.');
@@ -1159,12 +1226,13 @@ function crm_manager_monitor_create_client(PDO $pdo, string $name, string $exter
 
     $now = date('Y-m-d H:i:s');
     $query = $pdo->prepare(
-        'INSERT INTO manager_clients (name, external_ref, active, created_at, updated_at)
-         VALUES (:name, :external_ref, 1, :created_at, :updated_at)'
+        'INSERT INTO manager_clients (name, external_ref, manager_user_id, active, created_at, updated_at)
+         VALUES (:name, :external_ref, :manager_user_id, 1, :created_at, :updated_at)'
     );
     $query->execute([
         'name' => $name,
         'external_ref' => $externalRef !== '' ? $externalRef : null,
+        'manager_user_id' => $managerUserId,
         'created_at' => $now,
         'updated_at' => $now,
     ]);
@@ -1177,7 +1245,7 @@ function crm_manager_monitor_create_client(PDO $pdo, string $name, string $exter
  * The dashboard uses this path so a client can never be left half-created if
  * the selected group disappears between the form submission and the update.
  */
-function crm_manager_monitor_create_client_and_link_group(PDO $pdo, string $name, string $externalRef, int $groupId): int
+function crm_manager_monitor_create_client_and_link_group(PDO $pdo, string $name, string $externalRef, int $groupId, ?int $managerUserId = null): int
 {
     if ($groupId <= 0) {
         throw new InvalidArgumentException('Selecione um grupo válido.');
@@ -1185,7 +1253,7 @@ function crm_manager_monitor_create_client_and_link_group(PDO $pdo, string $name
 
     try {
         $pdo->beginTransaction();
-        $clientId = crm_manager_monitor_create_client($pdo, $name, $externalRef);
+        $clientId = crm_manager_monitor_create_client($pdo, $name, $externalRef, $managerUserId);
         crm_manager_monitor_link_group_to_client($pdo, $groupId, $clientId);
         $pdo->commit();
 
@@ -1196,6 +1264,36 @@ function crm_manager_monitor_create_client_and_link_group(PDO $pdo, string $name
         }
 
         throw $error;
+    }
+}
+
+function crm_manager_monitor_assign_client_to_manager(PDO $pdo, int $clientId, ?int $managerUserId): void
+{
+    crm_manager_monitor_ensure_schema($pdo);
+
+    if ($clientId <= 0) {
+        throw new InvalidArgumentException('Cliente inválido.');
+    }
+
+    $managerUserId = crm_manager_monitor_validate_manager_id($pdo, $managerUserId);
+    $query = $pdo->prepare(
+        'UPDATE manager_clients
+         SET manager_user_id = :manager_user_id, updated_at = :updated_at
+         WHERE id = :id AND active = 1'
+    );
+    $query->execute([
+        'manager_user_id' => $managerUserId,
+        'updated_at' => date('Y-m-d H:i:s'),
+        'id' => $clientId,
+    ]);
+
+    if ($query->rowCount() === 0) {
+        $exists = $pdo->prepare('SELECT id FROM manager_clients WHERE id = :id AND active = 1 LIMIT 1');
+        $exists->execute(['id' => $clientId]);
+
+        if ((int) $exists->fetchColumn() <= 0) {
+            throw new InvalidArgumentException('Cliente não encontrado.');
+        }
     }
 }
 
@@ -1229,9 +1327,10 @@ function crm_manager_monitor_link_group_to_client(PDO $pdo, int $groupId, int $c
 function crm_manager_monitor_read_group(PDO $pdo, int $groupId): ?array
 {
     $query = $pdo->prepare(
-        'SELECT g.*, c.name AS client_name
+        'SELECT g.*, c.name AS client_name, manager.name AS manager_name
          FROM manager_groups g
          LEFT JOIN manager_clients c ON c.id = g.client_id
+         LEFT JOIN crm_users manager ON manager.id = c.manager_user_id
          WHERE g.id = :id AND g.active = 1
          LIMIT 1'
     );

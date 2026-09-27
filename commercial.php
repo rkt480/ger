@@ -82,6 +82,8 @@ $users = crm_read_users(true);
 $activeUsers = array_values(array_filter($users, static fn(array $user): bool => (int) ($user['active'] ?? 0) === 1));
 $rotationUsers = array_values(array_filter($users, static fn(array $user): bool => (int) ($user['active'] ?? 0) === 1 && (int) ($user['participates_in_rotation'] ?? 0) === 1));
 $userRoles = crm_user_roles();
+$defaultUserRole = (string) ($_GET['role'] ?? 'vendedor');
+$defaultUserRole = array_key_exists($defaultUserRole, $userRoles) ? $defaultUserRole : 'vendedor';
 $kanbanColumns = crm_read_kanban_columns();
 $salesDistributionSettings = crm_sales_distribution_settings();
 $slaStatusKeys = array_flip($salesDistributionSettings['sla_statuses']);
@@ -199,7 +201,7 @@ $overdueLeads = crm_read_sla_overdue_leads(20);
                   </span>
                   <div>
                     <p class="integration-kicker">Novo acesso</p>
-                    <h2>Cadastrar usuário</h2>
+                    <h2><?= $defaultUserRole === 'gestor' ? 'Cadastrar gestor' : 'Cadastrar usuário' ?></h2>
                   </div>
                   <span class="integration-status">Novo</span>
                 </header>
@@ -223,7 +225,7 @@ $overdueLeads = crm_read_sla_overdue_leads(20);
                     Perfil
                     <select name="role">
                       <?php foreach ($userRoles as $role => $label): ?>
-                        <option value="<?= htmlspecialchars($role) ?>" <?= $role === 'vendedor' ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+                        <option value="<?= htmlspecialchars($role) ?>" <?= $role === $defaultUserRole ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
                       <?php endforeach; ?>
                     </select>
                   </label>
@@ -276,7 +278,7 @@ $overdueLeads = crm_read_sla_overdue_leads(20);
                   </div>
                   <button class="integration-save" type="submit">
                     <span aria-hidden="true">✓</span>
-                    Criar usuário
+                    <?= $defaultUserRole === 'gestor' ? 'Criar gestor' : 'Criar usuário' ?>
                   </button>
                 </form>
               </section>

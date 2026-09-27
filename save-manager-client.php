@@ -25,16 +25,24 @@ try {
     $rawExternalRef = $_POST['external_ref'] ?? '';
     $name = is_scalar($rawName) ? (string) $rawName : '';
     $externalRef = is_scalar($rawExternalRef) ? (string) $rawExternalRef : '';
+    $managerUserId = null;
+
+    if (crm_current_user_is_admin()) {
+        $rawManagerUserId = $_POST['manager_user_id'] ?? null;
+        $managerUserId = is_scalar($rawManagerUserId) ? filter_var($rawManagerUserId, FILTER_VALIDATE_INT) : false;
+        $managerUserId = is_int($managerUserId) && $managerUserId > 0 ? $managerUserId : null;
+    }
 
     if ($groupId > 0) {
-        crm_manager_monitor_create_client_and_link_group($pdo, $name, $externalRef, $groupId);
+        crm_manager_monitor_create_client_and_link_group($pdo, $name, $externalRef, $groupId, $managerUserId);
         header('Location: manager-dashboard.php?saved=client_group');
     } else {
-        crm_manager_monitor_create_client($pdo, $name, $externalRef);
+        crm_manager_monitor_create_client($pdo, $name, $externalRef, $managerUserId);
         header('Location: manager-dashboard.php?saved=client');
     }
 } catch (InvalidArgumentException $error) {
-    header('Location: manager-dashboard.php?error=' . ($groupId > 0 ? 'invalid_client_group' : 'invalid_client'));
+    $errorCode = str_contains($error->getMessage(), 'Gestor') ? 'invalid_manager' : ($groupId > 0 ? 'invalid_client_group' : 'invalid_client');
+    header('Location: manager-dashboard.php?error=' . $errorCode);
 } catch (Throwable $error) {
     error_log('Erro ao cadastrar cliente do monitor: ' . $error->getMessage());
     header('Location: manager-dashboard.php?error=' . ($groupId > 0 ? 'save_client_group' : 'save_client'));

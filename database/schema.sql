@@ -323,11 +323,15 @@ CREATE TABLE IF NOT EXISTS publi_ai_crm.manager_clients (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(180) NOT NULL,
   external_ref VARCHAR(120) NULL,
+  manager_user_id INT NULL,
   active TINYINT(1) NOT NULL DEFAULT 1,
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
   INDEX idx_manager_clients_active (active, name),
-  INDEX idx_manager_clients_external_ref (external_ref)
+  INDEX idx_manager_clients_external_ref (external_ref),
+  INDEX idx_manager_clients_manager (manager_user_id, active),
+  CONSTRAINT fk_manager_clients_manager
+    FOREIGN KEY (manager_user_id) REFERENCES crm_users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS publi_ai_crm.manager_groups (

@@ -1,4 +1,45 @@
 (() => {
+  const grid = document.querySelector('[data-manager-client-grid]');
+  const buttons = document.querySelectorAll('[data-manager-client-view]');
+
+  if (!grid || buttons.length === 0) {
+    return;
+  }
+
+  const userKey = document.body.dataset.managerUserKey || 'session';
+  const storageKey = `manager-client-view-${userKey}`;
+  let savedView = 'cards';
+
+  try {
+    savedView = window.localStorage.getItem(storageKey) === 'list' ? 'list' : 'cards';
+  } catch (error) {
+    savedView = 'cards';
+  }
+
+  const setView = (view) => {
+    const normalizedView = view === 'list' ? 'list' : 'cards';
+    grid.dataset.viewMode = normalizedView;
+
+    buttons.forEach((button) => {
+      const isActive = button.dataset.managerClientView === normalizedView;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+
+    try {
+      window.localStorage.setItem(storageKey, normalizedView);
+    } catch (error) {
+      // A private browsing session may block localStorage; the toggle still works.
+    }
+  };
+
+  setView(savedView);
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => setView(button.dataset.managerClientView || 'cards'));
+  });
+})();
+
+(() => {
   const clock = document.querySelector('[data-manager-clock]');
   const date = document.querySelector('[data-manager-date]');
   const greeting = document.querySelector('[data-manager-greeting-label]');

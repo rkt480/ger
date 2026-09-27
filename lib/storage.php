@@ -78,7 +78,7 @@ function crm_db_reconnect(): PDO
 
 function crm_schema_version(): string
 {
-    return '20260912.1';
+    return '20260927.1';
 }
 
 function crm_schema_version_is_current(PDO $pdo): bool
