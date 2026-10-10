@@ -1,3 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <image href="./mmdesign-mark.png" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">MM Design</title>
+  <defs>
+    <linearGradient id="brand" x1="15" y1="12" x2="112" y2="116" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6269F2"/>
+      <stop offset="1" stop-color="#21B7C6"/>
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="62" fill="url(#brand)"/>
+  <path d="M31 91V38l33 32 33-32v53" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="9"/>
+  <circle cx="99" cy="29" r="5" fill="#B9FFF2"/>
 </svg>

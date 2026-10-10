@@ -1559,7 +1559,7 @@ if ($isWaConversationFragment) {
     <main class="wa-web-shell" aria-label="Atendimento WhatsApp do CRM">
       <aside class="sidebar" aria-label="Navegação do CRM">
         <a class="brand" href="index.php" aria-label="Início" data-no-navigation-prefetch>
-          <span class="brand-mark"><img src="./assets/mmdesign-mark.png" alt="MM DESIGN" /></span>
+          <span class="brand-mark"><img src="./assets/brand-mark.svg" alt="MM DESIGN" /></span>
         </a>
         <nav class="sidebar-tabs" aria-label="Atalhos do CRM">
           <a class="sidebar-kanban" href="index.php" title="Voltar para o Kanban" aria-label="Voltar para o Kanban" data-no-navigation-prefetch>

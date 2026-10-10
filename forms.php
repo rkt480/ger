@@ -48,7 +48,7 @@ $isNew = $currentForm === null;
   <body>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegação do CRM">
-        <a class="brand" href="index.php" aria-label="Início"><span class="brand-mark"><img src="./assets/mmdesign-mark.png" alt="MM DESIGN" /></span></a>
+        <a class="brand" href="index.php" aria-label="Início"><span class="brand-mark"><img src="./assets/brand-mark.svg" alt="MM DESIGN" /></span></a>
         <nav class="sidebar-tabs" aria-label="Atalhos do CRM">
           <a class="sidebar-whatsapp" href="whatsapp.php" title="Conversas do WhatsApp" aria-label="Conversas do WhatsApp">
             <svg viewBox="0 0 24 24" aria-hidden="true">

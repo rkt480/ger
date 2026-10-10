@@ -87,7 +87,7 @@ $bodyVariables = crm_whatsapp_template_variables((string) ($currentTemplate['bod
   <body class="wa-templates-page">
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegação do CRM">
-        <a class="brand" href="index.php" aria-label="Início"><span class="brand-mark"><img src="./assets/mmdesign-mark.png" alt="MM DESIGN" /></span></a>
+        <a class="brand" href="index.php" aria-label="Início"><span class="brand-mark"><img src="./assets/brand-mark.svg" alt="MM DESIGN" /></span></a>
         <nav class="sidebar-tabs" aria-label="Atalhos do CRM">
           <a class="sidebar-whatsapp" href="whatsapp.php" title="Conversas do WhatsApp" aria-label="Conversas do WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.4 14.8H6.2a4 4 0 0 1-4-4V7.2a4 4 0 0 1 4-4h7.1a4 4 0 0 1 4 4v.6" /><path d="M10.7 8.2h6.2a4 4 0 0 1 4 4v2.7a4 4 0 0 1-4 4h-2.5L11 21v-2.1h-.3a4 4 0 0 1-4-4v-2.7a4 4 0 0 1 4-4Z" /></svg></a>
           <a class="active" href="whatsapp-templates.php" title="Templates WhatsApp" aria-label="Templates WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14v15H5z" /><path d="M8 8h8M8 12h8M8 16h5" /></svg></a>

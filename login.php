@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <body class="auth-page">
     <main class="auth-card">
       <div class="auth-brand">
-        <img src="./assets/mmdesign-source.png" alt="MM DESIGN" />
+        <img src="./assets/brand-logo.svg" alt="MM DESIGN" />
       </div>
       <p class="auth-description">Acesse sua conta para visualizar e gerenciar os contatos recebidos</p>
 

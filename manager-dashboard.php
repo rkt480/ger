@@ -162,7 +162,7 @@ $clientMonitorStatus = static function (array $client): string {
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegação do gerente">
         <a class="brand" href="manager-dashboard.php" aria-label="Início">
-          <span class="brand-mark"><img src="./assets/mmdesign-mark.png" alt="MM DESIGN" /></span>
+          <span class="brand-mark"><img src="./assets/brand-mark.svg" alt="MM DESIGN" /></span>
         </a>
         <nav class="sidebar-tabs" aria-label="Atalhos do gerente">
           <a class="active" href="manager-dashboard.php" title="Monitoramento" aria-label="Monitoramento">
