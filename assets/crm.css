@@ -7906,6 +7906,112 @@ option {
   margin-top: 22px;
 }
 
+.manager-delivery-section {
+  margin: 8px 0 26px;
+}
+
+.manager-delivery-section .settings-group-header {
+  margin-bottom: 12px;
+}
+
+.manager-delivery-settings,
+.manager-delivery-card a {
+  color: #aebaff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.manager-delivery-settings:hover,
+.manager-delivery-card a:hover {
+  color: #fff;
+}
+
+.manager-delivery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.manager-delivery-card {
+  min-height: 170px;
+  padding: 17px;
+  background: rgba(15, 22, 34, 0.82);
+  border: 1px solid rgba(154, 169, 197, 0.15);
+  border-radius: 16px;
+}
+
+.manager-delivery-card.is-ready {
+  border-color: rgba(67, 197, 139, 0.25);
+}
+
+.manager-delivery-status {
+  display: inline-flex;
+  margin-bottom: 12px;
+  padding: 5px 8px;
+  color: #f6c976;
+  background: rgba(222, 164, 57, 0.12);
+  border: 1px solid rgba(222, 164, 57, 0.19);
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.manager-delivery-card.is-ready .manager-delivery-status {
+  color: #75ddb1;
+  background: rgba(47, 173, 119, 0.12);
+  border-color: rgba(47, 173, 119, 0.2);
+}
+
+.manager-delivery-card h3 {
+  margin: 0 0 7px;
+  color: #eef2fc;
+  font-size: 0.96rem;
+}
+
+.manager-delivery-card p {
+  margin: 0 0 12px;
+  color: #9aa7bb;
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.manager-delivery-card strong {
+  color: #c8d0df;
+  font-size: 0.69rem;
+  font-weight: 650;
+}
+
+@media (max-width: 900px) {
+  .manager-delivery-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manager-delivery-card {
+    min-height: unset;
+  }
+}
+
+html[data-theme="light"] .manager-delivery-card {
+  background: #fff;
+  border-color: rgba(31, 44, 67, 0.12);
+  box-shadow: 0 8px 24px rgba(38, 56, 87, 0.05);
+}
+
+html[data-theme="light"] .manager-delivery-card h3 {
+  color: #17263b;
+}
+
+html[data-theme="light"] .manager-delivery-card p {
+  color: #64748b;
+}
+
+html[data-theme="light"] .manager-delivery-card strong {
+  color: #334155;
+}
+
 .manager-client-section .settings-group-header,
 .manager-unassigned-section .settings-group-header {
   margin-bottom: 12px;
@@ -8182,6 +8288,68 @@ option {
   font-size: 0.65rem;
 }
 
+.manager-ad-account-editor {
+  margin: 0 0 12px;
+  padding: 0 0 11px;
+  border-bottom: 1px solid rgba(154, 169, 197, 0.1);
+}
+
+.manager-ad-account-editor summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #b8c4d7;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 750;
+  list-style: none;
+}
+
+.manager-ad-account-editor summary::-webkit-details-marker {
+  display: none;
+}
+
+.manager-ad-account-editor summary span {
+  color: #7f8da2;
+  font-size: 0.61rem;
+  font-weight: 600;
+}
+
+.manager-ad-account-editor form {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.manager-ad-account-editor label {
+  display: grid;
+  gap: 5px;
+  color: #8795aa;
+  font-size: 0.63rem;
+  font-weight: 750;
+}
+
+.manager-ad-account-editor input {
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 9px;
+  font-size: 0.68rem;
+}
+
+.manager-ad-account-editor small {
+  color: #7f8da2;
+  font-size: 0.61rem;
+  line-height: 1.45;
+}
+
+.manager-ad-account-editor button {
+  min-height: 31px;
+  justify-self: end;
+  padding: 5px 9px;
+  font-size: 0.65rem;
+}
+
 .manager-form-help {
   display: block;
   margin: -3px 0 10px;
@@ -8203,7 +8371,9 @@ option {
 
 .manager-client-grid[data-view-mode="list"] .manager-client-card-header,
 .manager-client-grid[data-view-mode="list"] .manager-client-kpis,
-.manager-client-grid[data-view-mode="list"] .manager-client-manager-form {
+.manager-client-grid[data-view-mode="list"] .manager-client-manager-form,
+.manager-client-grid[data-view-mode="list"] .manager-ad-account-editor,
+.manager-client-grid[data-view-mode="list"] .manager-ads-client-status {
   grid-column: 1;
 }
 
@@ -9740,6 +9910,20 @@ html[data-theme="light"] .manager-form-help {
   color: #738197;
 }
 
+html[data-theme="light"] .manager-ad-account-editor {
+  border-color: rgba(124, 139, 161, 0.16);
+}
+
+html[data-theme="light"] .manager-ad-account-editor summary {
+  color: #334155;
+}
+
+html[data-theme="light"] .manager-ad-account-editor summary span,
+html[data-theme="light"] .manager-ad-account-editor label,
+html[data-theme="light"] .manager-ad-account-editor small {
+  color: #64748b;
+}
+
 html[data-theme="light"] .manager-client-kpis,
 html[data-theme="light"] .manager-detail-card-header,
 html[data-theme="light"] .manager-client-manager-form,
@@ -9835,6 +10019,259 @@ html[data-theme="light"] .manager-alert-item blockquote {
 
 html[data-theme="light"] .manager-alert-resolution-note {
   color: #16845e;
+}
+
+.manager-campaign-alerts-section,
+.manager-campaign-reports-section {
+  margin-top: 24px;
+}
+
+.manager-campaign-alert-list {
+  padding: 0;
+}
+
+.manager-campaign-alert-list .manager-alert-item {
+  padding: 15px 17px;
+}
+
+.manager-campaign-alert-list .manager-alert-item details {
+  margin-top: 8px;
+  color: #aab5c8;
+  font-size: 0.68rem;
+}
+
+.manager-campaign-alert-list .manager-alert-item details summary {
+  cursor: pointer;
+  color: #aebaff;
+}
+
+.manager-campaign-alert-list .manager-alert-item details blockquote {
+  margin-bottom: 0;
+  white-space: pre-line;
+}
+
+.manager-campaign-report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.manager-campaign-report-card {
+  min-width: 0;
+  padding: 16px;
+  background: linear-gradient(145deg, rgba(22, 29, 42, 0.84), rgba(13, 18, 28, 0.76));
+  border: 1px solid rgba(154, 169, 197, 0.16);
+  border-radius: 16px;
+}
+
+.manager-campaign-report-card header,
+.manager-campaign-report-card header > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.manager-campaign-report-card header > div {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.manager-campaign-report-card header span {
+  color: #e7ecf8;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.manager-campaign-report-card header small,
+.manager-campaign-report-card footer {
+  color: #8795aa;
+  font-size: 0.63rem;
+}
+
+.manager-campaign-report-card header b {
+  flex: 0 0 auto;
+  color: #f1c979;
+  font-size: 0.63rem;
+}
+
+.manager-campaign-report-card p,
+.manager-campaign-report-card li {
+  color: #aab5c8;
+  font-size: 0.7rem;
+  line-height: 1.55;
+}
+
+.manager-campaign-report-card p {
+  margin: 12px 0 8px;
+}
+
+.manager-campaign-report-card ul {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 12px;
+  padding-left: 18px;
+}
+
+.manager-campaign-report-metrics {
+  margin: 10px 0 12px;
+  padding: 9px 10px;
+  background: rgba(12, 19, 30, 0.38);
+  border: 1px solid rgba(154, 169, 197, 0.11);
+  border-radius: 11px;
+}
+
+.manager-campaign-report-metrics summary {
+  cursor: pointer;
+  color: #b8c3d6;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.manager-campaign-report-metrics ul {
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.manager-campaign-report-metrics li {
+  display: grid;
+  gap: 3px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(154, 169, 197, 0.1);
+}
+
+.manager-campaign-report-metrics li strong {
+  color: #e7ecf8;
+  font-size: 0.65rem;
+}
+
+.manager-campaign-report-metrics li span,
+.manager-campaign-report-metrics li small {
+  color: #93a0b4;
+  font-size: 0.59rem;
+  line-height: 1.4;
+}
+
+.manager-campaign-report-card footer {
+  display: block;
+  padding-top: 10px;
+  border-top: 1px solid rgba(154, 169, 197, 0.12);
+}
+
+.manager-ads-client-status {
+  display: grid;
+  gap: 7px;
+  margin: 12px 0;
+  padding: 10px;
+  background: rgba(13, 20, 31, 0.48);
+  border: 1px solid rgba(154, 169, 197, 0.13);
+  border-radius: 12px;
+}
+
+.manager-ads-client-status > strong {
+  color: #dce5f4;
+  font-size: 0.69rem;
+}
+
+.manager-ads-client-status > span,
+.manager-ads-client-status > small,
+.manager-ads-client-status > a {
+  color: #95a2b6;
+  font-size: 0.62rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.manager-ads-client-status > span.is-success {
+  color: #72dcb1;
+}
+
+.manager-ads-client-status > span.is-error {
+  color: #ff9eac;
+}
+
+.manager-ads-client-status form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+}
+
+.manager-ads-client-status select,
+.manager-ads-client-status button {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 9px;
+  font-size: 0.64rem;
+}
+
+.manager-ads-client-status button {
+  color: #dce5ff;
+  background: rgba(105, 124, 210, 0.2);
+  border: 1px solid rgba(156, 173, 255, 0.2);
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.manager-ads-client-status button:hover {
+  background: rgba(105, 124, 210, 0.32);
+}
+
+html[data-theme="light"] .manager-campaign-report-card {
+  background: linear-gradient(145deg, #fff, #f4f7fb);
+  border-color: rgba(124, 139, 161, 0.18);
+}
+
+html[data-theme="light"] .manager-campaign-report-card header span,
+html[data-theme="light"] .manager-ads-client-status > strong {
+  color: #1d2a3e;
+}
+
+html[data-theme="light"] .manager-campaign-report-metrics {
+  background: rgba(241, 246, 252, 0.85);
+  border-color: rgba(124, 139, 161, 0.16);
+}
+
+html[data-theme="light"] .manager-campaign-report-metrics summary {
+  color: #334155;
+}
+
+html[data-theme="light"] .manager-campaign-report-metrics li strong {
+  color: #1d2a3e;
+}
+
+html[data-theme="light"] .manager-campaign-report-metrics li span,
+html[data-theme="light"] .manager-campaign-report-metrics li small {
+  color: #64748b;
+}
+
+html[data-theme="light"] .manager-campaign-report-card header small,
+html[data-theme="light"] .manager-campaign-report-card footer,
+html[data-theme="light"] .manager-campaign-report-card p,
+html[data-theme="light"] .manager-campaign-report-card li,
+html[data-theme="light"] .manager-ads-client-status > span,
+html[data-theme="light"] .manager-ads-client-status > small {
+  color: #64748b;
+}
+
+html[data-theme="light"] .manager-ads-client-status {
+  background: rgba(241, 246, 252, 0.75);
+  border-color: rgba(124, 139, 161, 0.16);
+}
+
+html[data-theme="light"] .manager-ads-client-status > span.is-success {
+  color: #16845e;
+}
+
+html[data-theme="light"] .manager-ads-client-status > span.is-error {
+  color: #c0344d;
+}
+
+html[data-theme="light"] .manager-campaign-alert-list .manager-alert-item details summary {
+  color: #2c62c9;
 }
 
 html[data-theme="light"] .utility-dialog,
@@ -10429,4 +10866,302 @@ html[data-theme="dark"] .auth-card input {
 html[data-theme="light"] .auth-card input {
   background: var(--theme-input);
   border-color: var(--theme-border-strong);
+}
+
+.manager-team-activity-section {
+  margin: 8px 0 26px;
+}
+
+.manager-team-activity-section > .settings-group-header {
+  margin-bottom: 8px;
+}
+
+.manager-team-activity-note {
+  max-width: 860px;
+  margin: 0 0 14px;
+  color: #9aa7bb;
+  font-size: 0.74rem;
+  line-height: 1.55;
+}
+
+.manager-team-activity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.manager-team-activity-card {
+  min-width: 0;
+  padding: 16px;
+  background: rgba(15, 22, 34, 0.82);
+  border: 1px solid rgba(154, 169, 197, 0.15);
+  border-radius: 16px;
+}
+
+.manager-team-activity-card-header,
+.manager-team-activity-client > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.manager-team-activity-card-header .eyebrow {
+  margin: 0 0 4px;
+}
+
+.manager-team-activity-card-header h3 {
+  margin: 0;
+  color: #eef2fc;
+  font-size: 0.96rem;
+}
+
+.manager-team-activity-card-header > span {
+  color: #aebaff;
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.manager-team-activity-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.manager-team-activity-summary > div {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(154, 169, 197, 0.1);
+  border-radius: 10px;
+}
+
+.manager-team-activity-summary strong {
+  color: #eff3ff;
+  font-size: 1.05rem;
+}
+
+.manager-team-activity-summary span,
+.manager-team-activity-details summary {
+  color: #9aa7bb;
+  font-size: 0.68rem;
+}
+
+.manager-team-activity-details summary {
+  width: fit-content;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.manager-team-activity-client-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.manager-team-activity-client {
+  padding: 11px;
+  background: rgba(4, 8, 15, 0.24);
+  border: 1px solid rgba(154, 169, 197, 0.1);
+  border-radius: 11px;
+}
+
+.manager-team-activity-client > header strong {
+  color: #e8edf8;
+  font-size: 0.76rem;
+}
+
+.manager-team-activity-client > header small {
+  color: #8390a5;
+  font-size: 0.6rem;
+  text-align: right;
+}
+
+.manager-team-activity-statuses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.manager-team-activity-statuses > div {
+  display: grid;
+  gap: 4px;
+}
+
+.manager-team-activity-statuses span {
+  color: #8794a8;
+  font-size: 0.61rem;
+}
+
+.manager-team-activity-statuses strong {
+  width: fit-content;
+  padding: 4px 7px;
+  color: #bac4d5;
+  background: rgba(148, 163, 184, 0.1);
+  border-radius: 999px;
+  font-size: 0.6rem;
+}
+
+.manager-team-activity-statuses strong.is-done {
+  color: #75ddb1;
+  background: rgba(47, 173, 119, 0.12);
+}
+
+.manager-team-activity-statuses strong.is-not_done {
+  color: #f6c976;
+  background: rgba(222, 164, 57, 0.12);
+}
+
+.manager-team-activity-client ul {
+  display: grid;
+  gap: 4px;
+  margin: 9px 0 0;
+  padding-left: 17px;
+  color: #aeb9ca;
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 520px) {
+  .manager-team-activity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manager-team-activity-client > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .manager-team-activity-client > header small {
+    text-align: left;
+  }
+}
+
+html[data-theme="light"] .manager-team-activity-note,
+html[data-theme="light"] .manager-team-activity-summary span,
+html[data-theme="light"] .manager-team-activity-details summary {
+  color: #64748b;
+}
+
+html[data-theme="light"] .manager-team-activity-card {
+  background: #fff;
+  border-color: rgba(31, 44, 67, 0.12);
+  box-shadow: 0 8px 24px rgba(38, 56, 87, 0.05);
+}
+
+html[data-theme="light"] .manager-team-activity-card-header h3,
+html[data-theme="light"] .manager-team-activity-summary strong,
+html[data-theme="light"] .manager-team-activity-client > header strong {
+  color: #17263b;
+}
+
+html[data-theme="light"] .manager-team-activity-summary > div,
+html[data-theme="light"] .manager-team-activity-client {
+  background: #f8fafc;
+  border-color: rgba(31, 44, 67, 0.09);
+}
+
+html[data-theme="light"] .manager-team-activity-client ul {
+  color: #475569;
+}
+
+.manager-team-digest,
+.manager-team-digest-empty {
+  margin: 12px 0;
+  padding: 11px 12px;
+  background: rgba(105, 124, 210, 0.08);
+  border: 1px solid rgba(156, 173, 255, 0.15);
+  border-radius: 11px;
+}
+
+.manager-team-digest header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.manager-team-digest header span {
+  color: #aebaff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.manager-team-digest header small {
+  color: #9aa7bb;
+  font-size: 0.6rem;
+  text-align: right;
+}
+
+.manager-team-digest h4 {
+  margin: 8px 0 4px;
+  color: #e8edf8;
+  font-size: 0.75rem;
+}
+
+.manager-team-digest p,
+.manager-team-digest-empty {
+  color: #aeb9ca;
+  font-size: 0.67rem;
+  line-height: 1.5;
+}
+
+.manager-team-digest p {
+  margin: 0;
+}
+
+.manager-team-digest details {
+  margin-top: 8px;
+}
+
+.manager-team-digest details summary {
+  color: #aebaff;
+  cursor: pointer;
+  font-size: 0.62rem;
+  font-weight: 750;
+}
+
+.manager-team-digest ul {
+  display: grid;
+  gap: 4px;
+  margin: 7px 0 0;
+  padding-left: 17px;
+  color: #aeb9ca;
+  font-size: 0.63rem;
+  line-height: 1.45;
+}
+
+.manager-team-digest-empty {
+  margin-bottom: 12px;
+  padding: 9px 10px;
+}
+
+.manager-team-digest.is-sent {
+  border-color: rgba(47, 173, 119, 0.24);
+}
+
+.manager-team-digest.is-failed,
+.manager-team-digest.is-generation_error {
+  border-color: rgba(233, 103, 103, 0.28);
+}
+
+html[data-theme="light"] .manager-team-digest,
+html[data-theme="light"] .manager-team-digest-empty {
+  background: #f8fafc;
+  border-color: rgba(31, 44, 67, 0.1);
+}
+
+html[data-theme="light"] .manager-team-digest h4 {
+  color: #17263b;
+}
+
+html[data-theme="light"] .manager-team-digest p,
+html[data-theme="light"] .manager-team-digest-empty,
+html[data-theme="light"] .manager-team-digest ul,
+html[data-theme="light"] .manager-team-digest header small {
+  color: #64748b;
 }

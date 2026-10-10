@@ -174,8 +174,11 @@ if (
         return;
       }
 
+      const isCampaignAlert = button.dataset.managerAlertKind === 'campaign';
       const note = window.prompt(
-        'Como o problema foi resolvido? Essa observação será considerada pela próxima análise da IA. (Opcional)',
+        isCampaignAlert
+          ? 'Adicione uma observação sobre a resolução deste alerta de campanha. (Opcional)'
+          : 'Como o problema foi resolvido? Essa observação será considerada pela próxima análise da IA. (Opcional)',
         'Resolvido pelo gestor.'
       );
 

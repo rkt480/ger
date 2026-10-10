@@ -78,7 +78,7 @@ function crm_db_reconnect(): PDO
 
 function crm_schema_version(): string
 {
-    return '20260927.1';
+    return '20261002.1';
 }
 
 function crm_schema_version_is_current(PDO $pdo): bool
@@ -250,6 +250,7 @@ function crm_ensure_crm_schema(PDO $pdo): void
             name VARCHAR(160) NOT NULL,
             username VARCHAR(120) NOT NULL UNIQUE,
             email VARCHAR(180) NULL,
+            whatsapp_phone VARCHAR(40) NULL,
             password_hash VARCHAR(255) NOT NULL,
             role VARCHAR(30) NOT NULL DEFAULT "vendedor",
             active TINYINT(1) NOT NULL DEFAULT 1,
@@ -568,6 +569,7 @@ function crm_ensure_user_columns(PDO $pdo): void
 {
     $columns = [
         'email' => 'VARCHAR(180) NULL AFTER username',
+        'whatsapp_phone' => 'VARCHAR(40) NULL AFTER email',
         'role' => 'VARCHAR(30) NOT NULL DEFAULT "vendedor" AFTER password_hash',
         'active' => 'TINYINT(1) NOT NULL DEFAULT 1 AFTER role',
         'participates_in_rotation' => 'TINYINT(1) NOT NULL DEFAULT 0 AFTER active',
@@ -1709,6 +1711,7 @@ function crm_save_user(array $payload): array
     $name = trim((string) ($payload['name'] ?? ''));
     $username = trim((string) ($payload['username'] ?? ''));
     $email = trim((string) ($payload['email'] ?? ''));
+    $whatsappPhone = preg_replace('/\D+/', '', (string) ($payload['whatsapp_phone'] ?? '')) ?? '';
     $password = (string) ($payload['password'] ?? '');
     $role = crm_normalize_user_role((string) ($payload['role'] ?? 'vendedor'));
     $active = !empty($payload['active']) ? 1 : 0;
@@ -1726,6 +1729,14 @@ function crm_save_user(array $payload): array
 
     if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
         return ['ok' => false, 'error' => 'Informe um e-mail válido.'];
+    }
+
+    if ($whatsappPhone !== '' && (strlen($whatsappPhone) < 10 || strlen($whatsappPhone) > 15)) {
+        return ['ok' => false, 'error' => 'Informe um número de WhatsApp válido, com DDI e DDD quando necessário.'];
+    }
+
+    if ($whatsappPhone !== '' && !str_starts_with($whatsappPhone, '55') && strlen($whatsappPhone) <= 11) {
+        $whatsappPhone = '55' . $whatsappPhone;
     }
 
     if ($id === 0 && trim($password) === '') {
@@ -1758,6 +1769,7 @@ function crm_save_user(array $payload): array
                 'name = :name',
                 'username = :username',
                 'email = :email',
+                'whatsapp_phone = :whatsapp_phone',
                 'role = :role',
                 'active = :active',
                 'participates_in_rotation = :participates_in_rotation',
@@ -1774,6 +1786,7 @@ function crm_save_user(array $payload): array
                 'name' => $name,
                 'username' => $username,
                 'email' => $email !== '' ? $email : null,
+                'whatsapp_phone' => $whatsappPhone !== '' ? $whatsappPhone : null,
                 'role' => $role,
                 'active' => $active,
                 'participates_in_rotation' => $participates,
@@ -1800,10 +1813,12 @@ function crm_save_user(array $payload): array
         $stmt = crm_db()->prepare(
             'INSERT INTO crm_users
             (name, username, email, password_hash, role, active, participates_in_rotation, rotation_weight,
+             whatsapp_phone,
              access_schedule_enabled, access_start_time, access_end_time,
              access_saturday_enabled, access_sunday_enabled, created_at, updated_at)
             VALUES
-            (:name, :username, :email, :password_hash, :role, :active, :participates_in_rotation, :rotation_weight,
+             (:name, :username, :email, :password_hash, :role, :active, :participates_in_rotation, :rotation_weight,
+             :whatsapp_phone,
              :access_schedule_enabled, :access_start_time, :access_end_time,
              :access_saturday_enabled, :access_sunday_enabled, :created_at, :updated_at)'
         );
@@ -1811,6 +1826,7 @@ function crm_save_user(array $payload): array
             'name' => $name,
             'username' => $username,
             'email' => $email !== '' ? $email : null,
+            'whatsapp_phone' => $whatsappPhone !== '' ? $whatsappPhone : null,
             'password_hash' => password_hash($password, PASSWORD_DEFAULT),
             'role' => $role,
             'active' => $active,

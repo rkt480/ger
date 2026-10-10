@@ -172,6 +172,11 @@ function crm_is_secret_setting(string $key): bool
         'google_calendar_refresh_token',
         'google_calendar_oauth_state',
         'push_vapid_private_key',
+        'meta_ads_access_token',
+        'meta_ads_app_secret',
+        'google_ads_developer_token',
+        'google_ads_client_secret',
+        'google_ads_refresh_token',
     ], true)) {
         return true;
     }

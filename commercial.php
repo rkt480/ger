@@ -28,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'name' => $_POST['name'] ?? '',
             'username' => $_POST['username'] ?? '',
             'email' => $_POST['email'] ?? '',
+            'whatsapp_phone' => $_POST['whatsapp_phone'] ?? '',
             'password' => $_POST['password'] ?? '',
             'role' => $_POST['role'] ?? 'vendedor',
             'active' => ($_POST['active'] ?? '') === '1',
@@ -222,6 +223,10 @@ $overdueLeads = crm_read_sla_overdue_leads(20);
                     <input type="email" name="email" autocomplete="email" />
                   </label>
                   <label>
+                    WhatsApp para alertas gerenciais
+                    <input type="tel" name="whatsapp_phone" placeholder="55 11 99999-9999" autocomplete="tel" inputmode="tel" />
+                  </label>
+                  <label>
                     Perfil
                     <select name="role">
                       <?php foreach ($userRoles as $role => $label): ?>
@@ -323,6 +328,10 @@ $overdueLeads = crm_read_sla_overdue_leads(20);
                           <label>
                             E-mail
                             <input type="email" name="email" value="<?= htmlspecialchars((string) ($crmUser['email'] ?? '')) ?>" />
+                          </label>
+                          <label>
+                            WhatsApp para alertas gerenciais
+                            <input type="tel" name="whatsapp_phone" value="<?= htmlspecialchars((string) ($crmUser['whatsapp_phone'] ?? '')) ?>" placeholder="55 11 99999-9999" autocomplete="tel" inputmode="tel" />
                           </label>
                           <label>
                             Perfil

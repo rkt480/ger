@@ -25,6 +25,8 @@ function crm_manager_monitor_ensure_schema(PDO $pdo): void
             name VARCHAR(180) NOT NULL,
             external_ref VARCHAR(120) NULL,
             manager_user_id INT NULL,
+            meta_ads_account_ids VARCHAR(500) NULL,
+            google_ads_customer_ids VARCHAR(500) NULL,
             active TINYINT(1) NOT NULL DEFAULT 1,
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL,
@@ -166,10 +168,90 @@ function crm_manager_monitor_ensure_schema(PDO $pdo): void
             CONSTRAINT fk_manager_reports_group
               FOREIGN KEY (group_id) REFERENCES manager_groups(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+        'CREATE TABLE IF NOT EXISTS manager_team_activity (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            client_id BIGINT UNSIGNED NOT NULL,
+            period_key CHAR(7) NOT NULL,
+            meeting_status VARCHAR(20) NOT NULL DEFAULT "unknown",
+            meeting_evidence TEXT NULL,
+            report_status VARCHAR(20) NOT NULL DEFAULT "unknown",
+            report_evidence TEXT NULL,
+            source_group_id BIGINT UNSIGNED NULL,
+            manager_user_id INT NULL,
+            analyzed_at DATETIME NOT NULL,
+            UNIQUE KEY uq_manager_team_activity_group_period (source_group_id, period_key),
+            INDEX idx_manager_team_activity_manager (manager_user_id, period_key),
+            CONSTRAINT fk_manager_team_activity_client
+              FOREIGN KEY (client_id) REFERENCES manager_clients(id) ON DELETE CASCADE,
+            CONSTRAINT fk_manager_team_activity_group
+              FOREIGN KEY (source_group_id) REFERENCES manager_groups(id) ON DELETE SET NULL,
+            CONSTRAINT fk_manager_team_activity_manager
+              FOREIGN KEY (manager_user_id) REFERENCES crm_users(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+        'CREATE TABLE IF NOT EXISTS manager_team_digests (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            manager_user_id INT NOT NULL,
+            digest_date DATE NOT NULL,
+            period_key CHAR(7) NOT NULL,
+            action_type VARCHAR(40) NOT NULL DEFAULT "suggestion",
+            notify_whatsapp TINYINT(1) NOT NULL DEFAULT 0,
+            title VARCHAR(255) NOT NULL,
+            summary TEXT NOT NULL,
+            whatsapp_message TEXT NULL,
+            evidence LONGTEXT NULL,
+            generation_error TEXT NULL,
+            delivery_status VARCHAR(20) NOT NULL DEFAULT "not_requested",
+            delivery_started_at DATETIME NULL,
+            whatsapp_sent_at DATETIME NULL,
+            whatsapp_error TEXT NULL,
+            result_json LONGTEXT NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            UNIQUE KEY uq_manager_team_digest_day (manager_user_id, digest_date),
+            INDEX idx_manager_team_digest_date (digest_date, delivery_status),
+            CONSTRAINT fk_manager_team_digest_manager
+              FOREIGN KEY (manager_user_id) REFERENCES crm_users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+        'CREATE TABLE IF NOT EXISTS manager_team_group_checks (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            group_id BIGINT UNSIGNED NOT NULL,
+            checked_on DATE NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT "processing",
+            started_at DATETIME NOT NULL,
+            completed_at DATETIME NULL,
+            error_message TEXT NULL,
+            UNIQUE KEY uq_manager_team_group_check_day (group_id, checked_on),
+            INDEX idx_manager_team_group_check_day (checked_on, status),
+            CONSTRAINT fk_manager_team_group_check_group
+              FOREIGN KEY (group_id) REFERENCES manager_groups(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
     ];
 
     foreach ($statements as $statement) {
         $pdo->exec($statement);
+    }
+
+    $oldTeamActivityIndex = $pdo->query("SHOW INDEX FROM manager_team_activity WHERE Key_name = 'uq_manager_team_activity_period'");
+
+    if ($oldTeamActivityIndex->fetch(PDO::FETCH_ASSOC)) {
+        // The old (client_id, period_key) unique index may also be the
+        // supporting index for fk_manager_team_activity_client. Add a
+        // dedicated client index first so MySQL can keep that foreign key
+        // while replacing the uniqueness scope with (source_group_id,
+        // period_key).
+        $teamActivityClientIndex = $pdo->query("SHOW INDEX FROM manager_team_activity WHERE Key_name = 'idx_manager_team_activity_client'");
+
+        if (!$teamActivityClientIndex->fetch(PDO::FETCH_ASSOC)) {
+            $pdo->exec('ALTER TABLE manager_team_activity ADD INDEX idx_manager_team_activity_client (client_id)');
+        }
+
+        $pdo->exec('ALTER TABLE manager_team_activity DROP INDEX uq_manager_team_activity_period');
+    }
+
+    $teamActivityGroupIndex = $pdo->query("SHOW INDEX FROM manager_team_activity WHERE Key_name = 'uq_manager_team_activity_group_period'");
+
+    if (!$teamActivityGroupIndex->fetch(PDO::FETCH_ASSOC)) {
+        $pdo->exec('ALTER TABLE manager_team_activity ADD UNIQUE KEY uq_manager_team_activity_group_period (source_group_id, period_key)');
     }
 
     // Existing installations already have manager_alerts, so keep the
@@ -188,6 +270,17 @@ function crm_manager_monitor_ensure_schema(PDO $pdo): void
 
     if (!$managerUserColumn->fetch(PDO::FETCH_ASSOC)) {
         $pdo->exec('ALTER TABLE manager_clients ADD COLUMN manager_user_id INT NULL AFTER external_ref');
+    }
+
+    foreach ([
+        'meta_ads_account_ids' => 'VARCHAR(500) NULL AFTER manager_user_id',
+        'google_ads_customer_ids' => 'VARCHAR(500) NULL AFTER meta_ads_account_ids',
+    ] as $column => $definition) {
+        $columnCheck = $pdo->query("SHOW COLUMNS FROM manager_clients LIKE '" . $column . "'");
+
+        if (!$columnCheck->fetch(PDO::FETCH_ASSOC)) {
+            $pdo->exec('ALTER TABLE manager_clients ADD COLUMN ' . $column . ' ' . $definition);
+        }
     }
 
     $managerUserIndex = $pdo->query("SHOW INDEX FROM manager_clients WHERE Key_name = 'idx_manager_clients_manager'");
@@ -974,6 +1067,8 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
             c.name,
             c.external_ref,
             c.manager_user_id,
+            c.meta_ads_account_ids,
+            c.google_ads_customer_ids,
             manager.name AS manager_name,
             c.active,
             COALESCE(g.group_count, 0) AS group_count,
@@ -1192,6 +1287,169 @@ function crm_manager_monitor_read_active_managers(PDO $pdo): array
     return $query->fetchAll(PDO::FETCH_ASSOC);
 }
 
+function crm_manager_monitor_read_team_activity(PDO $pdo, ?string $periodKey = null): array
+{
+    $periodKey = $periodKey ?? date('Y-m');
+
+    if (preg_match('/^\d{4}-\d{2}$/', $periodKey) !== 1) {
+        $periodKey = date('Y-m');
+    }
+
+    $query = $pdo->prepare(
+        'SELECT c.id AS client_id, c.name AS client_name, c.manager_user_id,
+                manager.name AS manager_name,
+                activity.meeting_status, activity.meeting_evidence,
+                activity.report_status, activity.report_evidence, activity.analyzed_at
+         FROM manager_clients c
+         LEFT JOIN crm_users manager ON manager.id = c.manager_user_id
+         LEFT JOIN manager_team_activity activity
+           ON activity.client_id = c.id AND activity.period_key = :period_key
+         WHERE c.active = 1
+         ORDER BY manager.name ASC, c.name ASC'
+    );
+    $query->execute(['period_key' => $periodKey]);
+    $clientRows = $query->fetchAll(PDO::FETCH_ASSOC);
+    $clientsById = [];
+
+    foreach ($clientRows as $row) {
+        $clientId = (int) ($row['client_id'] ?? 0);
+
+        if ($clientId <= 0) {
+            continue;
+        }
+
+        if (!isset($clientsById[$clientId])) {
+            $clientsById[$clientId] = [
+                'client_id' => $clientId,
+                'client_name' => (string) ($row['client_name'] ?? ''),
+                'manager_user_id' => (int) ($row['manager_user_id'] ?? 0),
+                'manager_name' => (string) ($row['manager_name'] ?? ''),
+                'meeting_status' => 'unknown',
+                'meeting_evidence_items' => [],
+                'meeting_pending_analyzed_at' => '',
+                'report_status' => 'unknown',
+                'report_evidence_items' => [],
+                'report_pending_analyzed_at' => '',
+                'analyzed_at' => '',
+            ];
+        }
+
+        $client =& $clientsById[$clientId];
+
+        foreach ([
+            'meeting' => ['status' => (string) ($row['meeting_status'] ?? 'unknown'), 'evidence' => $row['meeting_evidence'] ?? null],
+            'report' => ['status' => (string) ($row['report_status'] ?? 'unknown'), 'evidence' => $row['report_evidence'] ?? null],
+        ] as $kind => $activity) {
+            $statusKey = $kind === 'meeting' ? 'meeting_status' : 'report_status';
+            $evidenceKey = $kind === 'meeting' ? 'meeting_evidence_items' : 'report_evidence_items';
+            $pendingAtKey = $kind === 'meeting' ? 'meeting_pending_analyzed_at' : 'report_pending_analyzed_at';
+            $status = in_array($activity['status'], ['done', 'not_done'], true) ? $activity['status'] : 'unknown';
+            $activityAnalyzedAt = (string) ($row['analyzed_at'] ?? '');
+            $evidence = json_decode((string) $activity['evidence'], true);
+            $evidence = is_array($evidence)
+                ? array_values(array_filter(array_map(
+                    static fn(mixed $item): string => is_scalar($item) ? trim((string) $item) : '',
+                    $evidence
+                ), static fn(string $item): bool => $item !== ''))
+                : [];
+
+            if ($status === 'done') {
+                if ($client[$statusKey] !== 'done') {
+                    $client[$evidenceKey] = [];
+                }
+                $client[$statusKey] = 'done';
+                $client[$evidenceKey] = array_slice(array_values(array_unique(array_merge($client[$evidenceKey], $evidence))), -5);
+                $client[$pendingAtKey] = '';
+            } elseif ($status === 'not_done' && $client[$statusKey] === 'unknown') {
+                $client[$statusKey] = 'not_done';
+                $client[$evidenceKey] = array_slice($evidence, 0, 5);
+                $client[$pendingAtKey] = $activityAnalyzedAt;
+            } elseif ($status === 'not_done' && $client[$statusKey] === 'not_done') {
+                $client[$evidenceKey] = array_slice(array_values(array_unique(array_merge($client[$evidenceKey], $evidence))), -5);
+
+                if ($activityAnalyzedAt > $client[$pendingAtKey]) {
+                    $client[$pendingAtKey] = $activityAnalyzedAt;
+                }
+            }
+        }
+
+        $analyzedAt = (string) ($row['analyzed_at'] ?? '');
+
+        if ($analyzedAt > $client['analyzed_at']) {
+            $client['analyzed_at'] = $analyzedAt;
+        }
+
+        unset($client);
+    }
+
+    $managers = [];
+
+    foreach ($clientsById as $client) {
+        $managerId = (int) ($client['manager_user_id'] ?? 0);
+        $key = $managerId > 0 ? (string) $managerId : 'unassigned';
+
+        if (!isset($managers[$key])) {
+            $managers[$key] = [
+                'manager_user_id' => $managerId > 0 ? $managerId : null,
+                'manager_name' => trim((string) ($client['manager_name'] ?? '')) ?: 'Sem gestor atribuído',
+                'client_count' => 0,
+                'meetings_done' => 0,
+                'meetings_not_done' => 0,
+                'meetings_unknown' => 0,
+                'reports_done' => 0,
+                'reports_not_done' => 0,
+                'reports_unknown' => 0,
+                'daily_digest' => null,
+                'clients' => [],
+            ];
+        }
+
+        $meetingStatus = in_array((string) ($client['meeting_status'] ?? ''), ['done', 'not_done'], true)
+            ? (string) $client['meeting_status']
+            : 'unknown';
+        $reportStatus = in_array((string) ($client['report_status'] ?? ''), ['done', 'not_done'], true)
+            ? (string) $client['report_status']
+            : 'unknown';
+        $managers[$key]['client_count']++;
+        $managers[$key]['meetings_' . $meetingStatus]++;
+        $managers[$key]['reports_' . $reportStatus]++;
+        $managers[$key]['clients'][] = [
+            'id' => (int) ($client['client_id'] ?? 0),
+            'name' => (string) ($client['client_name'] ?? ''),
+            'meeting_status' => $meetingStatus,
+            'meeting_evidence' => json_encode($client['meeting_evidence_items'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '[]',
+            'meeting_pending_analyzed_at' => (string) $client['meeting_pending_analyzed_at'],
+            'report_status' => $reportStatus,
+            'report_evidence' => json_encode($client['report_evidence_items'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '[]',
+            'report_pending_analyzed_at' => (string) $client['report_pending_analyzed_at'],
+            'analyzed_at' => (string) ($client['analyzed_at'] ?? ''),
+        ];
+    }
+
+    $digestQuery = $pdo->prepare(
+        'SELECT manager_user_id, action_type, notify_whatsapp, title, summary,
+                evidence, generation_error, delivery_status, whatsapp_sent_at,
+                whatsapp_error, created_at
+         FROM manager_team_digests
+         WHERE digest_date = :digest_date AND period_key = :period_key'
+    );
+    $digestQuery->execute(['digest_date' => date('Y-m-d'), 'period_key' => $periodKey]);
+
+    foreach ($digestQuery->fetchAll(PDO::FETCH_ASSOC) as $digest) {
+        $key = (string) ((int) ($digest['manager_user_id'] ?? 0));
+
+        if (isset($managers[$key])) {
+            $managers[$key]['daily_digest'] = $digest;
+        }
+    }
+
+    return [
+        'period_key' => $periodKey,
+        'managers' => array_values($managers),
+        'client_count' => count($clientsById),
+    ];
+}
+
 function crm_manager_monitor_validate_manager_id(PDO $pdo, ?int $managerUserId): ?int
 {
     if ($managerUserId === null || $managerUserId <= 0) {
@@ -1211,6 +1469,68 @@ function crm_manager_monitor_validate_manager_id(PDO $pdo, ?int $managerUserId):
     }
 
     return $managerUserId;
+}
+
+function crm_manager_monitor_normalize_account_ids(string $rawIds): string
+{
+    $parts = preg_split('/[,;\s]+/', trim($rawIds)) ?: [];
+    $ids = [];
+
+    foreach ($parts as $part) {
+        $id = preg_replace('/\D+/', '', (string) $part) ?? '';
+
+        if ($id === '') {
+            continue;
+        }
+
+        if (strlen($id) > 20) {
+            throw new InvalidArgumentException('Um ID de conta de anúncios excede 20 dígitos.');
+        }
+
+        $ids[$id] = $id;
+    }
+
+    $normalized = implode(',', array_values($ids));
+
+    if (strlen($normalized) > 500) {
+        throw new InvalidArgumentException('A lista de contas de anúncios excede o limite permitido.');
+    }
+
+    return $normalized;
+}
+
+function crm_manager_monitor_save_ad_accounts(PDO $pdo, int $clientId, string $metaAccountIds, string $googleCustomerIds): void
+{
+    crm_manager_monitor_ensure_schema($pdo);
+
+    if ($clientId <= 0) {
+        throw new InvalidArgumentException('Cliente inválido.');
+    }
+
+    $metaAccountIds = crm_manager_monitor_normalize_account_ids($metaAccountIds);
+    $googleCustomerIds = crm_manager_monitor_normalize_account_ids($googleCustomerIds);
+    $update = $pdo->prepare(
+        'UPDATE manager_clients
+         SET meta_ads_account_ids = :meta_ads_account_ids,
+             google_ads_customer_ids = :google_ads_customer_ids,
+             updated_at = :updated_at
+         WHERE id = :id AND active = 1'
+    );
+    $update->execute([
+        'meta_ads_account_ids' => $metaAccountIds !== '' ? $metaAccountIds : null,
+        'google_ads_customer_ids' => $googleCustomerIds !== '' ? $googleCustomerIds : null,
+        'updated_at' => date('Y-m-d H:i:s'),
+        'id' => $clientId,
+    ]);
+
+    if ($update->rowCount() === 0) {
+        $exists = $pdo->prepare('SELECT id FROM manager_clients WHERE id = :id AND active = 1 LIMIT 1');
+        $exists->execute(['id' => $clientId]);
+
+        if ((int) $exists->fetchColumn() <= 0) {
+            throw new InvalidArgumentException('Cliente não encontrado.');
+        }
+    }
 }
 
 function crm_manager_monitor_create_client(PDO $pdo, string $name, string $externalRef = '', ?int $managerUserId = null): int
@@ -1400,7 +1720,7 @@ function crm_manager_monitor_resolve_alert(PDO $pdo, int $alertId, ?int $userId 
     $query = $pdo->prepare(
         'SELECT id, group_id, status
          FROM manager_alerts
-         WHERE id = :id AND alert_type = "ai_group_status"
+         WHERE id = :id AND alert_type IN ("ai_group_status", "ai_campaign_status")
          LIMIT 1'
     );
     $query->execute(['id' => $alertId]);
@@ -1415,7 +1735,7 @@ function crm_manager_monitor_resolve_alert(PDO $pdo, int $alertId, ?int $userId 
     if ($status === 'resolved') {
         return [
             'alert_id' => (int) $alert['id'],
-            'group_id' => (int) $alert['group_id'],
+            'group_id' => $alert['group_id'] !== null ? (int) $alert['group_id'] : null,
             'already_resolved' => true,
         ];
     }
@@ -1449,15 +1769,17 @@ function crm_manager_monitor_resolve_alert(PDO $pdo, int $alertId, ?int $userId 
         throw new InvalidArgumentException('O alerta já foi resolvido por outro gestor.');
     }
 
-    $touch = $pdo->prepare('UPDATE manager_groups SET updated_at = :updated_at WHERE id = :id');
-    $touch->execute([
-        'updated_at' => $now,
-        'id' => (int) $alert['group_id'],
-    ]);
+    if ($alert['group_id'] !== null) {
+        $touch = $pdo->prepare('UPDATE manager_groups SET updated_at = :updated_at WHERE id = :id');
+        $touch->execute([
+            'updated_at' => $now,
+            'id' => (int) $alert['group_id'],
+        ]);
+    }
 
     return [
         'alert_id' => $alertId,
-        'group_id' => (int) $alert['group_id'],
+        'group_id' => $alert['group_id'] !== null ? (int) $alert['group_id'] : null,
         'resolution_note' => $resolutionNote,
         'already_resolved' => false,
     ];

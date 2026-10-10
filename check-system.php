@@ -13,6 +13,7 @@ echo "Diagnóstico Gerente\n\n";
 
 try {
     require_once __DIR__ . '/lib/storage.php';
+    require_once __DIR__ . '/lib/manager-ads.php';
     $config = require __DIR__ . '/config.php';
 
     echo "Config: OK\n";
@@ -22,9 +23,10 @@ try {
     echo "Host DB: " . (string) ($config['db']['host'] ?? '-') . "\n\n";
 
     $db = crm_db();
+    crm_manager_ads_ensure_schema($db);
     echo "Conexão MySQL: OK\n";
 
-    $tables = ['leads', 'crm_settings', 'crm_users', 'crm_password_reset_tokens', 'lead_assignment_logs', 'lead_timeline_events', 'kanban_columns', 'followup_flows', 'followup_steps', 'followup_queue', 'followup_step_history', 'openai_coach_documents', 'openai_coach_analyses', 'manager_clients', 'manager_groups', 'manager_group_participants', 'manager_group_messages', 'manager_ai_analyses', 'manager_alerts', 'manager_report_requirements'];
+    $tables = ['leads', 'crm_settings', 'crm_users', 'crm_password_reset_tokens', 'lead_assignment_logs', 'lead_timeline_events', 'kanban_columns', 'followup_flows', 'followup_steps', 'followup_queue', 'followup_step_history', 'openai_coach_documents', 'openai_coach_analyses', 'manager_clients', 'manager_groups', 'manager_group_participants', 'manager_group_messages', 'manager_ai_analyses', 'manager_alerts', 'manager_report_requirements', 'manager_team_activity', 'manager_team_digests', 'manager_team_group_checks', 'manager_campaign_metrics', 'manager_ads_syncs', 'manager_campaign_reports'];
 
     foreach ($tables as $table) {
         $stmt = $db->query('SELECT COUNT(*) AS total FROM ' . $table);

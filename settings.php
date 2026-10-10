@@ -15,6 +15,19 @@ $googleConnected = ($_GET['google_connected'] ?? '') === '1';
 $googleError = (string) ($_GET['google_error'] ?? '');
 $error = '';
 $settings = crm_read_settings();
+$managerAgentPrompt = trim((string) ($settings['manager_agent_prompt'] ?? ''));
+$metaAdsAccessConfigured = trim((string) ($settings['meta_ads_access_token'] ?? '')) !== '';
+$metaAdsSecretConfigured = trim((string) ($settings['meta_ads_app_secret'] ?? '')) !== '';
+$googleAdsDeveloperTokenConfigured = trim((string) ($settings['google_ads_developer_token'] ?? '')) !== '';
+$googleAdsClientSecretConfigured = trim((string) ($settings['google_ads_client_secret'] ?? '')) !== '';
+$googleAdsRefreshTokenConfigured = trim((string) ($settings['google_ads_refresh_token'] ?? '')) !== '';
+$metaAdsVersionConfigured = preg_match('/^v?\d{1,2}\.\d$/i', trim((string) ($settings['meta_ads_api_version'] ?? ''))) === 1;
+$metaAdsReady = $metaAdsAccessConfigured && $metaAdsVersionConfigured;
+$googleAdsReady = $googleAdsDeveloperTokenConfigured
+    && trim((string) ($settings['google_ads_client_id'] ?? '')) !== ''
+    && $googleAdsClientSecretConfigured
+    && $googleAdsRefreshTokenConfigured;
+$readyAdsSources = (int) $metaAdsReady + (int) $googleAdsReady;
 $openAiApiKeyConfigured = trim((string) ($settings['openai_api_key'] ?? '')) !== '';
 $openAiCoachPrompt = crm_openai_coach_prompt();
 $openAiCoachModel = crm_openai_coach_model();
@@ -181,6 +194,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    if ($settingsSection === 'manager_ads') {
+        $settings['meta_ads_app_id'] = trim((string) ($_POST['meta_ads_app_id'] ?? ''));
+        $settings['meta_ads_api_version'] = trim((string) ($_POST['meta_ads_api_version'] ?? ''));
+        $settings['google_ads_login_customer_id'] = preg_replace('/\D+/', '', (string) ($_POST['google_ads_login_customer_id'] ?? '')) ?? '';
+        $settings['google_ads_client_id'] = trim((string) ($_POST['google_ads_client_id'] ?? ''));
+
+        foreach ([
+            'meta_ads_access_token',
+            'meta_ads_app_secret',
+            'google_ads_developer_token',
+            'google_ads_client_secret',
+            'google_ads_refresh_token',
+        ] as $secretKey) {
+            $secretValue = trim((string) ($_POST[$secretKey] ?? ''));
+
+            if ($secretValue !== '') {
+                $settings[$secretKey] = $secretValue;
+            }
+        }
+
+        $agentPrompt = trim((string) ($_POST['manager_agent_prompt'] ?? ''));
+
+        if (strlen($agentPrompt) > 64000) {
+            $error = 'As instruções do agente excedem o limite permitido.';
+        } else {
+            $settings['manager_agent_prompt'] = $agentPrompt;
+        }
+    }
+
     if ($settingsSection === 'openai') {
         $openAiApiKey = trim((string) ($_POST['openai_api_key'] ?? ''));
 
@@ -239,7 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Configurações | CRM</title>
     <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260912-contrast-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261002-campaign-v1" />
   </head>
   <body class="settings-page">
     <div class="app-shell">
@@ -514,6 +556,102 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </header>
                 <p class="integration-description">As chaves técnicas são geradas automaticamente na primeira ativação. Cada vendedor só precisa permitir as notificações no próprio celular.</p>
                 <small class="settings-help">O navegador ainda exige uma confirmação do vendedor para proteger a privacidade do dispositivo.</small>
+              </section>
+            </div>
+          </section>
+
+          <section class="settings-group" id="manager-ads-config">
+            <header class="settings-group-header">
+              <div>
+                <p class="eyebrow">Operação gerencial</p>
+                <h2>Relatórios e campanhas</h2>
+              </div>
+            </header>
+
+            <div class="integrations-layout">
+              <section class="automation-card integration-card">
+                <header class="integration-card-header">
+                  <span class="integration-icon meta-icon" aria-hidden="true">✦</span>
+                  <div>
+                    <p class="integration-kicker">Preparação das integrações</p>
+                    <h2>Meta Ads e Google Ads</h2>
+                  </div>
+                  <span class="integration-status"><?= $readyAdsSources === 2 ? 'Credenciais das duas fontes salvas' : ($readyAdsSources === 1 ? 'Credenciais de uma fonte salvas' : 'Aguardando credenciais') ?></span>
+                </header>
+                <p class="integration-description">Cadastre as credenciais gerais das plataformas aqui e os IDs no cadastro de cada cliente. Depois da conexão, o painel consulta campanhas e métricas, gera relatórios por período e registra os alertas definidos pelo agente.</p>
+
+                <form class="flow-form" method="post" autocomplete="off">
+                  <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
+                  <input type="hidden" name="settings_section" value="manager_ads" />
+
+                  <div class="settings-subgroup field-wide">
+                    <div>
+                      <p class="integration-kicker">Meta Ads</p>
+                      <h3>Conta de anúncios</h3>
+                    </div>
+                    <label>
+                      App ID
+                      <input type="text" name="meta_ads_app_id" value="<?= htmlspecialchars((string) ($settings['meta_ads_app_id'] ?? '')) ?>" autocomplete="off" />
+                    </label>
+                    <label>
+                      App Secret
+                      <input type="password" name="meta_ads_app_secret" value="" placeholder="<?= $metaAdsSecretConfigured ? 'Segredo salvo. Preencha só para trocar.' : 'Cole o App Secret quando estiver pronto' ?>" autocomplete="new-password" />
+                    </label>
+                    <label>
+                      Access Token
+                      <input type="password" name="meta_ads_access_token" value="" placeholder="<?= $metaAdsAccessConfigured ? 'Token salvo. Preencha só para trocar.' : 'Cole o token de acesso quando estiver pronto' ?>" autocomplete="new-password" />
+                    </label>
+                    <label>
+                      Versão da API
+                      <input type="text" name="meta_ads_api_version" value="<?= htmlspecialchars((string) ($settings['meta_ads_api_version'] ?? '')) ?>" placeholder="Versão atual da Graph API, ex.: vNN.0" autocomplete="off" />
+                    </label>
+                  </div>
+
+                  <div class="settings-subgroup field-wide">
+                    <div>
+                      <p class="integration-kicker">Google Ads</p>
+                      <h3>Credenciais e contas</h3>
+                    </div>
+                    <label>
+                      Login Customer ID (opcional)
+                      <input type="text" name="google_ads_login_customer_id" value="<?= htmlspecialchars((string) ($settings['google_ads_login_customer_id'] ?? '')) ?>" placeholder="Conta de administrador, se houver" inputmode="numeric" autocomplete="off" />
+                    </label>
+                    <label>
+                      Developer Token
+                      <input type="password" name="google_ads_developer_token" value="" placeholder="<?= $googleAdsDeveloperTokenConfigured ? 'Token salvo. Preencha só para trocar.' : 'Preencha quando estiver pronto' ?>" autocomplete="new-password" />
+                    </label>
+                    <label>
+                      OAuth Client ID
+                      <input type="text" name="google_ads_client_id" value="<?= htmlspecialchars((string) ($settings['google_ads_client_id'] ?? '')) ?>" autocomplete="off" />
+                    </label>
+                    <label>
+                      OAuth Client Secret
+                      <input type="password" name="google_ads_client_secret" value="" placeholder="<?= $googleAdsClientSecretConfigured ? 'Segredo salvo. Preencha só para trocar.' : 'Preencha quando estiver pronto' ?>" autocomplete="new-password" />
+                    </label>
+                    <label>
+                      OAuth Refresh Token
+                      <input type="password" name="google_ads_refresh_token" value="" placeholder="<?= $googleAdsRefreshTokenConfigured ? 'Token salvo. Preencha só para trocar.' : 'Preencha quando estiver pronto' ?>" autocomplete="new-password" />
+                    </label>
+                  </div>
+
+                  <div class="settings-subgroup field-wide">
+                    <div>
+                      <p class="integration-kicker">Instruções do agente</p>
+                      <h3>Critérios de acompanhamento e análise</h3>
+                    </div>
+                    <label>
+                      Prompt do agente gerencial
+                      <textarea name="manager_agent_prompt" rows="8" maxlength="16000" placeholder="Adicione depois os critérios para reuniões, relatórios, alertas e recomendações de campanha..." spellcheck="true"><?= htmlspecialchars($managerAgentPrompt) ?></textarea>
+                    </label>
+                    <small class="settings-help">As análises de grupos, o acompanhamento diário por gestor e as campanhas consideram estas instruções. Defina aqui critérios de reuniões e relatórios, o que deve virar sugestão ou cobrança e quando o agente pode enviar WhatsApp. Sem prompt configurado, a rotina diária não envia mensagens.</small>
+                  </div>
+
+                  <small class="settings-help field-wide">Tokens e segredos são criptografados no servidor e nunca são exibidos novamente no formulário. Deixe o campo vazio para manter a credencial já salva.</small>
+                  <button class="integration-save" type="submit">
+                    <span aria-hidden="true">✓</span>
+                    Salvar configuração gerencial
+                  </button>
+                </form>
               </section>
             </div>
           </section>

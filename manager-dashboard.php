@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/storage.php';
+require_once __DIR__ . '/lib/manager-ads.php';
 
 crm_require_sales_manager();
 
@@ -13,13 +14,36 @@ $currentUserName = trim((string) ($currentUser['name'] ?? $currentUser['username
 $currentUserName = $currentUserName !== '' ? $currentUserName : 'gestor';
 $search = trim((string) ($_GET['q'] ?? ''));
 $monitor = crm_manager_monitor_read_dashboard($pdo, $search);
+$adsMonitor = crm_manager_ads_read_dashboard($pdo);
 $clients = $monitor['clients'];
 $groups = $monitor['groups'];
 $stats = $monitor['stats'];
 $unassignedGroups = $monitor['unassigned_groups'];
 $activeClients = crm_manager_monitor_read_active_clients($pdo);
 $activeManagers = crm_manager_monitor_read_active_managers($pdo);
+$teamActivity = crm_manager_monitor_read_team_activity($pdo);
 $isAdmin = crm_current_user_is_admin();
+$campaignAlerts = $adsMonitor['alerts'];
+$campaignReports = $adsMonitor['reports'];
+$adsSyncs = $adsMonitor['syncs'];
+$reportsByClient = [];
+$syncByClient = [];
+
+foreach ($campaignReports as $campaignReport) {
+    $reportClientId = (int) ($campaignReport['client_id'] ?? 0);
+
+    if ($reportClientId > 0 && !isset($reportsByClient[$reportClientId])) {
+        $reportsByClient[$reportClientId] = $campaignReport;
+    }
+}
+
+foreach ($adsSyncs as $adsSync) {
+    $syncClientId = (int) ($adsSync['client_id'] ?? 0);
+
+    if ($syncClientId > 0 && !isset($syncByClient[$syncClientId])) {
+        $syncByClient[$syncClientId] = $adsSync;
+    }
+}
 $managerUserKey = (int) ($currentUser['id'] ?? 0);
 $managerUserKey = $managerUserKey > 0 ? (string) $managerUserKey : 'session';
 $managerFeedVersion = crm_manager_monitor_feed_version($pdo);
@@ -40,6 +64,8 @@ $flashMessages = [
     'client_group' => 'Cliente cadastrado e grupo vinculado com sucesso.',
     'group' => 'Grupo vinculado ao cliente.',
     'manager' => 'Gestor vinculado ao cliente.',
+    'ad_accounts' => 'Contas de anúncios do cliente salvas.',
+    'ads_report' => 'Dados atualizados e relatório de campanhas gerado.',
 ];
 $errorMessages = [
     'invalid_client' => 'Informe um nome válido para o cliente.',
@@ -50,6 +76,10 @@ $errorMessages = [
     'link_group' => 'Não foi possível vincular o grupo agora.',
     'invalid_manager' => 'Selecione um gestor ativo válido.',
     'assign_manager' => 'Não foi possível vincular o gestor agora.',
+    'invalid_ad_accounts' => 'Revise os IDs das contas de anúncios informados.',
+    'save_ad_accounts' => 'Não foi possível salvar as contas de anúncios agora.',
+    'ads_period' => 'O período selecionado não é válido para gerar o relatório.',
+    'ads_sync' => 'Não foi possível concluir a atualização e o relatório. Confira as conexões de anúncios, os IDs das contas e a chave da OpenAI.',
 ];
 
 $formatDate = static function (mixed $value): string {
@@ -62,6 +92,22 @@ $formatDate = static function (mixed $value): string {
     $timestamp = strtotime($value);
 
     return $timestamp === false ? 'Sem atividade' : date('d/m · H:i', $timestamp);
+};
+$formatPeriod = static function (mixed $dateFrom, mixed $dateTo): string {
+    $from = strtotime((string) $dateFrom);
+    $to = strtotime((string) $dateTo);
+
+    return $from === false || $to === false ? 'Período indisponível' : date('d/m/Y', $from) . ' a ' . date('d/m/Y', $to);
+};
+$formatMetricNumber = static function (mixed $value, int $decimals = 0): string {
+    return $value === null || $value === '' ? '—' : number_format((float) $value, $decimals, ',', '.');
+};
+$teamActivityLabel = static function (mixed $status): string {
+    return match ((string) $status) {
+        'done' => 'Feita',
+        'not_done' => 'Pendente pelo prompt',
+        default => 'Sem informação',
+    };
 };
 $shortText = static function (mixed $value): string {
     $value = trim((string) $value);
@@ -110,7 +156,7 @@ $clientMonitorStatus = static function (array $client): string {
     <meta name="theme-color" content="#070a10" />
     <title>Monitoramento | Gerente</title>
     <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260927-manager-view-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261002-team-digest-v1" />
   </head>
   <body class="settings-page manager-monitor-page" data-manager-feed-version="<?= htmlspecialchars($managerFeedVersion) ?>" data-manager-user-key="<?= htmlspecialchars($managerUserKey) ?>">
     <div class="app-shell">
@@ -199,6 +245,222 @@ $clientMonitorStatus = static function (array $client): string {
             </div>
           </section>
 
+          <section class="manager-team-activity-section" aria-label="Acompanhamento mensal da equipe">
+            <header class="settings-group-header">
+              <div>
+                <p class="eyebrow">Acompanhamento da equipe · <?= htmlspecialchars(date('m/Y', strtotime($teamActivity['period_key'] . '-01'))) ?></p>
+                <h2>Reuniões e relatórios por gestor</h2>
+              </div>
+              <span class="manager-section-count"><?= (int) $teamActivity['client_count'] ?> cliente<?= (int) $teamActivity['client_count'] === 1 ? '' : 's' ?></span>
+            </header>
+            <p class="manager-team-activity-note">Os estados seguem as instruções cadastradas no prompt do agente. “Sem informação” significa que ainda não há classificação; silêncio no grupo não é tratado como pendência.</p>
+            <?php if ($teamActivity['managers'] === []): ?>
+              <article class="manager-inline-empty">Cadastre clientes ativos e atribua gestores para acompanhar a execução neste painel.</article>
+            <?php else: ?>
+              <div class="manager-team-activity-grid">
+                <?php foreach ($teamActivity['managers'] as $managerActivity): ?>
+                  <article class="manager-team-activity-card">
+                    <header class="manager-team-activity-card-header">
+                      <div>
+                        <p class="eyebrow">Gestor</p>
+                        <h3><?= htmlspecialchars((string) $managerActivity['manager_name']) ?></h3>
+                      </div>
+                      <span><?= (int) $managerActivity['client_count'] ?> cliente<?= (int) $managerActivity['client_count'] === 1 ? '' : 's' ?></span>
+                    </header>
+                    <div class="manager-team-activity-summary">
+                      <div><strong><?= (int) $managerActivity['meetings_done'] ?>/<?= (int) $managerActivity['client_count'] ?></strong><span>reuniões feitas</span></div>
+                      <div><strong><?= (int) $managerActivity['reports_done'] ?>/<?= (int) $managerActivity['client_count'] ?></strong><span>relatórios enviados</span></div>
+                      <div><strong><?= (int) $managerActivity['meetings_not_done'] + (int) $managerActivity['reports_not_done'] ?></strong><span>itens pendentes</span></div>
+                      <div><strong><?= (int) $managerActivity['meetings_unknown'] + (int) $managerActivity['reports_unknown'] ?></strong><span>sem informação</span></div>
+                    </div>
+                    <?php if (is_array($managerActivity['daily_digest'] ?? null)): ?>
+                      <?php
+                        $dailyDigest = $managerActivity['daily_digest'];
+                        $digestAction = (string) ($dailyDigest['action_type'] ?? 'suggestion');
+                        $digestActionLabel = $digestAction === 'manager_follow_up' ? 'Cobrança pelo prompt' : ($digestAction === 'notify_manager' ? 'Notificação pelo prompt' : 'Sugestão');
+                        $digestDeliveryStatus = (string) ($dailyDigest['delivery_status'] ?? 'not_requested');
+                        $digestWhatsAppLabel = match ($digestDeliveryStatus) {
+                            'sent' => 'WhatsApp enviado ' . $formatDate($dailyDigest['whatsapp_sent_at'] ?? ''),
+                            'pending' => 'WhatsApp aguardando envio',
+                            'sending' => 'WhatsApp em processamento',
+                            'failed' => 'Falha no WhatsApp: ' . (trim((string) ($dailyDigest['whatsapp_error'] ?? '')) ?: 'erro do provedor'),
+                            'generation_error' => 'Falha ao gerar a avaliação diária',
+                            default => 'Somente no painel',
+                        };
+                        $digestEvidence = json_decode((string) ($dailyDigest['evidence'] ?? ''), true);
+                        $digestEvidence = is_array($digestEvidence) ? $digestEvidence : [];
+                      ?>
+                      <article class="manager-team-digest is-<?= htmlspecialchars($digestDeliveryStatus) ?>">
+                        <header><span><?= htmlspecialchars($digestActionLabel) ?></span><small><?= htmlspecialchars($digestWhatsAppLabel) ?></small></header>
+                        <h4><?= htmlspecialchars((string) ($dailyDigest['title'] ?? 'Avaliação diária')) ?></h4>
+                        <?php if (trim((string) ($dailyDigest['generation_error'] ?? '')) !== ''): ?>
+                          <p><?= htmlspecialchars((string) $dailyDigest['generation_error']) ?></p>
+                        <?php else: ?>
+                          <p><?= nl2br(htmlspecialchars((string) ($dailyDigest['summary'] ?? ''))) ?></p>
+                        <?php endif; ?>
+                        <?php if ($digestEvidence !== []): ?>
+                          <details><summary>Evidências da avaliação</summary><ul>
+                            <?php foreach (array_slice($digestEvidence, 0, 8) as $evidence): ?>
+                              <?php if (is_scalar($evidence) && trim((string) $evidence) !== ''): ?><li><?= htmlspecialchars((string) $evidence) ?></li><?php endif; ?>
+                            <?php endforeach; ?>
+                          </ul></details>
+                        <?php endif; ?>
+                      </article>
+                    <?php else: ?>
+                      <p class="manager-team-digest-empty">A avaliação diária aparecerá aqui após a primeira execução do worker.</p>
+                    <?php endif; ?>
+                    <details class="manager-team-activity-details">
+                      <summary>Ver clientes e evidências</summary>
+                      <div class="manager-team-activity-client-list">
+                        <?php foreach ($managerActivity['clients'] as $activityClient): ?>
+                          <?php
+                            $meetingEvidence = json_decode((string) $activityClient['meeting_evidence'], true);
+                            $reportEvidence = json_decode((string) $activityClient['report_evidence'], true);
+                            $meetingEvidence = is_array($meetingEvidence) ? $meetingEvidence : [];
+                            $reportEvidence = is_array($reportEvidence) ? $reportEvidence : [];
+                          ?>
+                          <article class="manager-team-activity-client">
+                            <header><strong><?= htmlspecialchars((string) $activityClient['name']) ?></strong><small><?= htmlspecialchars($activityClient['analyzed_at'] !== '' ? 'Analisado ' . $formatDate($activityClient['analyzed_at']) : 'Ainda sem análise neste mês') ?></small></header>
+                            <div class="manager-team-activity-statuses">
+                              <div><span>Reunião</span><strong class="is-<?= htmlspecialchars((string) $activityClient['meeting_status']) ?>"><?= htmlspecialchars($teamActivityLabel($activityClient['meeting_status'])) ?></strong></div>
+                              <div><span>Relatório</span><strong class="is-<?= htmlspecialchars((string) $activityClient['report_status']) ?>"><?= htmlspecialchars($teamActivityLabel($activityClient['report_status'])) ?></strong></div>
+                            </div>
+                            <?php if ($meetingEvidence !== [] || $reportEvidence !== []): ?>
+                              <ul>
+                                <?php foreach (array_slice(array_merge($meetingEvidence, $reportEvidence), 0, 5) as $evidence): ?>
+                                  <?php if (is_scalar($evidence) && trim((string) $evidence) !== ''): ?><li><?= htmlspecialchars((string) $evidence) ?></li><?php endif; ?>
+                                <?php endforeach; ?>
+                              </ul>
+                            <?php endif; ?>
+                          </article>
+                        <?php endforeach; ?>
+                      </div>
+                    </details>
+                  </article>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+          </section>
+
+          <section class="manager-delivery-section" aria-label="Automação gerencial">
+            <header class="settings-group-header">
+              <div>
+                <p class="eyebrow">Primeira entrega</p>
+                <h2>Acompanhamento, relatórios e campanhas</h2>
+              </div>
+              <?php if ($isAdmin): ?><a class="manager-delivery-settings" href="settings.php#manager-ads-config">Configurar integrações e agente</a><?php endif; ?>
+            </header>
+            <div class="manager-delivery-grid">
+              <article class="manager-delivery-card is-ready">
+                <span class="manager-delivery-status">Monitoramento atual</span>
+                <h3>Equipe, clientes e conversas</h3>
+                <p>Acompanhe gestores atribuídos, grupos de WhatsApp, análises de conversa e alertas operacionais no painel.</p>
+                <strong><?= count($activeManagers) ?> gestores cadastrados · <?= (int) $stats['open_alerts'] ?> alertas abertos</strong>
+              </article>
+              <article class="manager-delivery-card">
+                <span class="manager-delivery-status">Automatizado</span>
+                <h3>Relatório automático</h3>
+                <p>Sincroniza Meta Ads e Google Ads, organiza métricas por campanha e gera resumo com IA. Também há uma rotina diária e relatório mensal automático.</p>
+                <?php if ($isAdmin): ?><a href="settings.php#manager-ads-config">Configurar APIs e prompt</a><?php else: ?><strong>Relatórios recentes aparecem abaixo.</strong><?php endif; ?>
+              </article>
+              <article class="manager-delivery-card is-ready">
+                <span class="manager-delivery-status">Painel + WhatsApp</span>
+                <h3>Alertas de campanha</h3>
+                <p>As recomendações e alertas ficam no painel. A IA só envia WhatsApp ao gestor atribuído quando o prompt pedir essa ação.</p>
+                <?php if ($isAdmin): ?><a href="settings.php#manager-ads-config">Editar regras do agente</a><br /><a href="commercial.php?tab=usuarios&amp;role=gestor">Cadastrar WhatsApp dos gestores</a><?php else: ?><strong>Notificações dependem das regras configuradas pelo administrador.</strong><?php endif; ?>
+              </article>
+            </div>
+          </section>
+
+          <section class="manager-campaign-alerts-section" id="manager-campaign-alerts">
+            <header class="settings-group-header">
+              <div>
+                <p class="eyebrow">Análise de campanhas</p>
+                <h2>Alertas em aberto</h2>
+              </div>
+              <span class="manager-section-count"><?= count($campaignAlerts) ?> alerta<?= count($campaignAlerts) === 1 ? '' : 's' ?></span>
+            </header>
+            <?php if ($campaignAlerts === []): ?>
+              <article class="manager-inline-empty">Nenhum alerta de campanha em aberto. Depois que as contas forem conectadas, a IA registrará aqui os pontos que precisarem de acompanhamento.</article>
+            <?php else: ?>
+              <div class="manager-alert-list manager-campaign-alert-list">
+                <?php foreach ($campaignAlerts as $alert): ?>
+                  <?php
+                    $evidenceText = trim((string) ($alert['evidence'] ?? ''));
+                    $actionType = (string) ($alert['action_type'] ?? 'suggestion');
+                    $actionLabel = $actionType === 'manager_follow_up' ? 'Cobrança definida pelo agente' : ($actionType === 'notify_manager' ? 'Notificar gestor' : 'Sugestão');
+                    $severityLabel = strtoupper((string) ($alert['severity'] ?? 'medium'));
+                  ?>
+                  <article class="manager-alert-item is-<?= htmlspecialchars((string) ($alert['severity'] ?? 'medium')) ?>">
+                    <header><span><?= htmlspecialchars($severityLabel) ?> · <?= htmlspecialchars($actionLabel) ?></span><time><?= htmlspecialchars($formatDate($alert['created_at'] ?? '')) ?></time></header>
+                    <h3><?= htmlspecialchars((string) ($alert['client_name'] ?? 'Cliente')) ?> — <?= htmlspecialchars((string) ($alert['title'] ?? 'Alerta de campanha')) ?></h3>
+                    <p><?= nl2br(htmlspecialchars((string) ($alert['description'] ?? ''))) ?></p>
+                    <?php if ($evidenceText !== ''): ?><details><summary>Evidências da análise</summary><blockquote><?= nl2br(htmlspecialchars($evidenceText)) ?></blockquote></details><?php endif; ?>
+                    <div class="manager-alert-item-footer">
+                      <?php
+                        $whatsAppStatus = (int) ($alert['notify_whatsapp'] ?? 0) !== 1
+                          ? 'desativado pelo agente'
+                          : (trim((string) ($alert['whatsapp_sent_at'] ?? '')) !== ''
+                            ? 'enviado ' . $formatDate($alert['whatsapp_sent_at'])
+                            : 'pendente: ' . (trim((string) ($alert['whatsapp_error'] ?? '')) ?: 'aguardando envio'));
+                      ?>
+                      <small>Gestor: <?= htmlspecialchars(trim((string) ($alert['manager_name'] ?? '')) ?: 'não atribuído') ?> · WhatsApp <?= htmlspecialchars($whatsAppStatus) ?></small>
+                      <button type="button" class="manager-alert-resolve-button" data-manager-resolve-alert data-manager-alert-kind="campaign" data-alert-id="<?= (int) $alert['id'] ?>">Resolver</button>
+                    </div>
+                  </article>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+          </section>
+
+          <section class="manager-campaign-reports-section" id="manager-campaign-reports">
+            <header class="settings-group-header">
+              <div>
+                <p class="eyebrow">Relatórios gerados</p>
+                <h2>Desempenho de campanhas</h2>
+              </div>
+              <span class="manager-section-count"><?= count($campaignReports) ?> relatório<?= count($campaignReports) === 1 ? '' : 's' ?></span>
+            </header>
+            <?php if ($campaignReports === []): ?>
+              <article class="manager-inline-empty">Os relatórios por cliente aparecerão aqui após a primeira sincronização. Configure as credenciais globais em Configurações e os IDs nas contas de cada cliente.</article>
+            <?php else: ?>
+              <div class="manager-campaign-report-grid">
+                <?php foreach (array_slice($campaignReports, 0, 12) as $report): ?>
+                  <?php
+                    $reportHighlights = json_decode((string) ($report['highlights_json'] ?? '[]'), true);
+                    $reportCampaigns = json_decode((string) ($report['metrics_json'] ?? '[]'), true);
+                    $reportHighlights = is_array($reportHighlights) ? $reportHighlights : [];
+                    $reportCampaigns = is_array($reportCampaigns) ? $reportCampaigns : [];
+                    $reportAlerts = json_decode((string) ($report['alerts_json'] ?? '[]'), true);
+                    $reportAlerts = is_array($reportAlerts) ? $reportAlerts : [];
+                  ?>
+                  <article class="manager-campaign-report-card">
+                    <header><div><span><?= htmlspecialchars((string) ($report['client_name'] ?? 'Cliente')) ?></span><small><?= htmlspecialchars($formatPeriod($report['date_from'] ?? '', $report['date_to'] ?? '')) ?></small></div><b><?= count($reportAlerts) ?> alerta<?= count($reportAlerts) === 1 ? '' : 's' ?></b></header>
+                    <p><?= nl2br(htmlspecialchars((string) ($report['report_summary'] ?? ''))) ?></p>
+                    <?php if ($reportHighlights !== []): ?><ul><?php foreach (array_slice($reportHighlights, 0, 4) as $highlight): ?><li><?= htmlspecialchars((string) $highlight) ?></li><?php endforeach; ?></ul><?php endif; ?>
+                    <?php if ($reportCampaigns !== []): ?>
+                      <details class="manager-campaign-report-metrics">
+                        <summary>Ver métricas das campanhas</summary>
+                        <ul>
+                          <?php foreach (array_slice($reportCampaigns, 0, 8) as $campaignMetric): ?>
+                            <?php if (!is_array($campaignMetric)) { continue; } ?>
+                            <?php $currencyCode = trim((string) ($campaignMetric['currency'] ?? '')); ?>
+                            <li>
+                              <strong><?= htmlspecialchars((string) ($campaignMetric['campaign_name'] ?? 'Campanha')) ?></strong>
+                              <span><?= htmlspecialchars(strtoupper((string) ($campaignMetric['platform'] ?? ''))) ?> · <?= (int) ($campaignMetric['impressions'] ?? 0) ?> impressões · <?= (int) ($campaignMetric['clicks'] ?? 0) ?> cliques · CTR <?= htmlspecialchars($formatMetricNumber($campaignMetric['ctr'] ?? null, 2)) ?>%</span>
+                              <small>Investimento: <?= htmlspecialchars($formatMetricNumber($campaignMetric['spend'] ?? null, 2)) ?><?= $currencyCode !== '' ? ' ' . htmlspecialchars($currencyCode) : '' ?> · Conversões: <?= htmlspecialchars($formatMetricNumber($campaignMetric['conversions'] ?? null, 2)) ?></small>
+                            </li>
+                          <?php endforeach; ?>
+                        </ul>
+                      </details>
+                    <?php endif; ?>
+                    <footer><?= count($reportCampaigns) ?> campanhas · atualizado <?= htmlspecialchars($formatDate($report['updated_at'] ?? '')) ?></footer>
+                  </article>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+          </section>
+
           <section class="manager-client-section">
             <header class="settings-group-header">
               <div>
@@ -230,6 +492,8 @@ $clientMonitorStatus = static function (array $client): string {
                     $clientId = (int) ($client['id'] ?? 0);
                     $clientGroups = $groupsByClient[$clientId] ?? [];
                     $clientStatus = $clientMonitorStatus($client);
+                    $clientSync = $syncByClient[$clientId] ?? null;
+                    $clientReport = $reportsByClient[$clientId] ?? null;
                   ?>
                   <article class="manager-client-card is-<?= htmlspecialchars($clientStatus) ?>">
                     <header class="manager-client-card-header">
@@ -259,7 +523,54 @@ $clientMonitorStatus = static function (array $client): string {
                         </select>
                         <button type="submit">Salvar</button>
                       </form>
+                      <details class="manager-ad-account-editor">
+                        <summary>
+                          Contas de anúncios
+                          <span><?= trim((string) ($client['meta_ads_account_ids'] ?? '')) !== '' || trim((string) ($client['google_ads_customer_ids'] ?? '')) !== '' ? 'IDs cadastrados' : 'Configurar por cliente' ?></span>
+                        </summary>
+                        <form method="post" action="save-manager-ad-accounts.php">
+                          <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
+                          <input type="hidden" name="client_id" value="<?= $clientId ?>" />
+                          <label>
+                            Meta Ads account ID
+                            <input type="text" name="meta_ads_account_ids" value="<?= htmlspecialchars((string) ($client['meta_ads_account_ids'] ?? '')) ?>" placeholder="Um ou mais IDs, separados por vírgula" maxlength="500" inputmode="numeric" />
+                          </label>
+                          <label>
+                            Google Ads Customer ID
+                            <input type="text" name="google_ads_customer_ids" value="<?= htmlspecialchars((string) ($client['google_ads_customer_ids'] ?? '')) ?>" placeholder="Um ou mais IDs, separados por vírgula" maxlength="500" inputmode="numeric" />
+                          </label>
+                          <small>As credenciais globais ficam em Configurações. Use os IDs das contas deste cliente.</small>
+                          <button type="submit">Salvar contas</button>
+                        </form>
+                      </details>
                     <?php endif; ?>
+                    <div class="manager-ads-client-status">
+                      <strong>Campanhas</strong>
+                      <?php if (is_array($clientSync)): ?>
+                        <span class="<?= (string) ($clientSync['status'] ?? '') === 'completed' ? 'is-success' : 'is-error' ?>">
+                          <?= (string) ($clientSync['status'] ?? '') === 'completed' ? 'Última atualização ' . htmlspecialchars($formatDate($clientSync['finished_at'] ?? '')) : 'Falha na última atualização' ?>
+                        </span>
+                        <?php if ((string) ($clientSync['status'] ?? '') !== 'completed' && trim((string) ($clientSync['error_message'] ?? '')) !== ''): ?><small><?= htmlspecialchars((string) $clientSync['error_message']) ?></small><?php endif; ?>
+                      <?php else: ?>
+                        <span>Aguardando primeira conexão</span>
+                      <?php endif; ?>
+                      <?php if ($isAdmin): ?>
+                        <form method="post" action="sync-manager-ads.php">
+                          <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
+                          <input type="hidden" name="client_id" value="<?= $clientId ?>" />
+                          <label class="visually-hidden" for="manager-ads-period-<?= $clientId ?>">Período do relatório</label>
+                          <select id="manager-ads-period-<?= $clientId ?>" name="period">
+                            <option value="last7">Últimos 7 dias</option>
+                            <option value="month_to_date">Mês atual</option>
+                            <option value="previous_month">Mês anterior</option>
+                          </select>
+                          <button type="submit">Atualizar e gerar relatório</button>
+                        </form>
+                      <?php endif; ?>
+                      <?php if (is_array($clientReport)): ?>
+                        <a href="#manager-campaign-reports">Relatório: <?= htmlspecialchars($formatPeriod($clientReport['date_from'] ?? '', $clientReport['date_to'] ?? '')) ?></a>
+                      <?php endif; ?>
+                    </div>
                     <div class="manager-client-groups">
                       <div class="manager-card-label">Grupos do cliente</div>
                       <?php if ($clientGroups === []): ?>
@@ -366,7 +677,7 @@ $clientMonitorStatus = static function (array $client): string {
       </div>
     </div>
     <script src="./assets/crm.js?v=20260911-coach-v5"></script>
-    <script src="./assets/manager-dashboard.js?v=20260927-manager-view-v1"></script>
+    <script src="./assets/manager-dashboard.js?v=20261002-campaign-v1"></script>
     <script src="./assets/crm-navigation.js?v=20260812-fast-navigation-v3"></script>
   </body>
 </html>
