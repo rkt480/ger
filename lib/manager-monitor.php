@@ -27,6 +27,11 @@ function crm_manager_monitor_ensure_schema(PDO $pdo): void
             manager_user_id INT NULL,
             meta_ads_account_ids VARCHAR(500) NULL,
             google_ads_customer_ids VARCHAR(500) NULL,
+            ads_report_schedule_enabled TINYINT(1) NOT NULL DEFAULT 0,
+            ads_report_schedule_frequency VARCHAR(20) NOT NULL DEFAULT "weekly",
+            ads_report_schedule_weekday TINYINT UNSIGNED NOT NULL DEFAULT 1,
+            ads_report_schedule_day TINYINT UNSIGNED NOT NULL DEFAULT 1,
+            ads_report_schedule_time TIME NOT NULL DEFAULT "08:00:00",
             active TINYINT(1) NOT NULL DEFAULT 1,
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL,
@@ -275,6 +280,11 @@ function crm_manager_monitor_ensure_schema(PDO $pdo): void
     foreach ([
         'meta_ads_account_ids' => 'VARCHAR(500) NULL AFTER manager_user_id',
         'google_ads_customer_ids' => 'VARCHAR(500) NULL AFTER meta_ads_account_ids',
+        'ads_report_schedule_enabled' => 'TINYINT(1) NOT NULL DEFAULT 0 AFTER google_ads_customer_ids',
+        'ads_report_schedule_frequency' => "VARCHAR(20) NOT NULL DEFAULT 'weekly' AFTER ads_report_schedule_enabled",
+        'ads_report_schedule_weekday' => 'TINYINT UNSIGNED NOT NULL DEFAULT 1 AFTER ads_report_schedule_frequency',
+        'ads_report_schedule_day' => 'TINYINT UNSIGNED NOT NULL DEFAULT 1 AFTER ads_report_schedule_weekday',
+        'ads_report_schedule_time' => "TIME NOT NULL DEFAULT '08:00:00' AFTER ads_report_schedule_day",
     ] as $column => $definition) {
         $columnCheck = $pdo->query("SHOW COLUMNS FROM manager_clients LIKE '" . $column . "'");
 
@@ -1057,6 +1067,7 @@ function crm_manager_monitor_ingest_payload(array $payload): array
  */
 function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): array
 {
+    crm_manager_monitor_ensure_schema($pdo);
     $search = crm_manager_monitor_limit($search, 120);
     $hasSearch = $search !== '';
     $searchLike = '%' . $search . '%';
@@ -1069,6 +1080,11 @@ function crm_manager_monitor_read_dashboard(PDO $pdo, string $search = ''): arra
             c.manager_user_id,
             c.meta_ads_account_ids,
             c.google_ads_customer_ids,
+            c.ads_report_schedule_enabled,
+            c.ads_report_schedule_frequency,
+            c.ads_report_schedule_weekday,
+            c.ads_report_schedule_day,
+            c.ads_report_schedule_time,
             manager.name AS manager_name,
             c.active,
             COALESCE(g.group_count, 0) AS group_count,

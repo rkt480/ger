@@ -79,6 +79,25 @@ function crm_manager_ads_ensure_schema(PDO $pdo): void
             CONSTRAINT fk_manager_campaign_reports_client
               FOREIGN KEY (client_id) REFERENCES manager_clients(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+        'CREATE TABLE IF NOT EXISTS manager_ads_report_deliveries (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            client_id BIGINT UNSIGNED NOT NULL,
+            occurrence_date DATE NOT NULL,
+            frequency VARCHAR(20) NOT NULL,
+            date_from DATE NOT NULL,
+            date_to DATE NOT NULL,
+            status VARCHAR(20) NOT NULL,
+            attempt_count TINYINT UNSIGNED NOT NULL DEFAULT 1,
+            last_attempt_at DATETIME NOT NULL,
+            sent_at DATETIME NULL,
+            error_message TEXT NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            UNIQUE KEY uq_manager_ads_delivery_occurrence (client_id, occurrence_date),
+            INDEX idx_manager_ads_delivery_latest (client_id, id),
+            CONSTRAINT fk_manager_ads_delivery_client
+              FOREIGN KEY (client_id) REFERENCES manager_clients(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
     ] as $statement) {
         $pdo->exec($statement);
     }
@@ -979,6 +998,207 @@ function crm_manager_ads_run_client_report(PDO $pdo, int $clientId, string $date
     ];
 }
 
+function crm_manager_ads_claim_scheduled_delivery(
+    PDO $pdo,
+    int $clientId,
+    string $occurrenceDate,
+    string $frequency,
+    string $dateFrom,
+    string $dateTo
+): int {
+    crm_manager_ads_ensure_schema($pdo);
+    $now = date('Y-m-d H:i:s');
+    $retryBefore = date('Y-m-d H:i:s', time() - 900);
+    $pdo->beginTransaction();
+
+    try {
+        $query = $pdo->prepare(
+            'SELECT id, status, attempt_count, last_attempt_at
+             FROM manager_ads_report_deliveries
+             WHERE client_id = :client_id AND occurrence_date = :occurrence_date
+             LIMIT 1 FOR UPDATE'
+        );
+        $query->execute(['client_id' => $clientId, 'occurrence_date' => $occurrenceDate]);
+        $existing = $query->fetch(PDO::FETCH_ASSOC);
+
+        if (!is_array($existing)) {
+            $insert = $pdo->prepare(
+                'INSERT INTO manager_ads_report_deliveries
+                    (client_id, occurrence_date, frequency, date_from, date_to, status, attempt_count,
+                     last_attempt_at, created_at, updated_at)
+                 VALUES (:client_id, :occurrence_date, :frequency, :date_from, :date_to, "processing", 1,
+                         :last_attempt_at, :created_at, :updated_at)'
+            );
+            $insert->execute([
+                'client_id' => $clientId,
+                'occurrence_date' => $occurrenceDate,
+                'frequency' => $frequency,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+                'last_attempt_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $attempt = 1;
+        } else {
+            $previousAttempts = (int) ($existing['attempt_count'] ?? 0);
+            $retryAllowed = (string) ($existing['status'] ?? '') === 'failed'
+                && $previousAttempts < 5
+                && (string) ($existing['last_attempt_at'] ?? '') < $retryBefore;
+
+            if (!$retryAllowed) {
+                $pdo->commit();
+                return 0;
+            }
+
+            $attempt = $previousAttempts + 1;
+            $update = $pdo->prepare(
+                'UPDATE manager_ads_report_deliveries
+                 SET frequency = :frequency, date_from = :date_from, date_to = :date_to,
+                     status = "processing", attempt_count = :attempt_count, last_attempt_at = :last_attempt_at,
+                     error_message = NULL, updated_at = :updated_at
+                 WHERE id = :id'
+            );
+            $update->execute([
+                'frequency' => $frequency,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+                'attempt_count' => $attempt,
+                'last_attempt_at' => $now,
+                'updated_at' => $now,
+                'id' => (int) $existing['id'],
+            ]);
+        }
+
+        $pdo->commit();
+        return $attempt;
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        throw $error;
+    }
+}
+
+function crm_manager_ads_finish_scheduled_delivery(PDO $pdo, int $clientId, string $occurrenceDate, bool $sent, string $error = ''): void
+{
+    $now = date('Y-m-d H:i:s');
+    $query = $pdo->prepare(
+        'UPDATE manager_ads_report_deliveries
+         SET status = :status, sent_at = :sent_at, error_message = :error_message, updated_at = :updated_at
+         WHERE client_id = :client_id AND occurrence_date = :occurrence_date'
+    );
+    $query->execute([
+        'status' => $sent ? 'sent' : 'failed',
+        'sent_at' => $sent ? $now : null,
+        'error_message' => $sent ? null : crm_manager_monitor_limit($error, 1000),
+        'updated_at' => $now,
+        'client_id' => $clientId,
+        'occurrence_date' => $occurrenceDate,
+    ]);
+}
+
+function crm_manager_ads_send_scheduled_report(PDO $pdo, array $client, array $report, string $dateFrom, string $dateTo): array
+{
+    $managerId = (int) ($client['manager_user_id'] ?? 0);
+
+    if ($managerId <= 0) {
+        return ['sent' => false, 'error' => 'Cliente sem gestor atribuído.'];
+    }
+
+    $query = $pdo->prepare('SELECT whatsapp_phone FROM crm_users WHERE id = :id AND active = 1 LIMIT 1');
+    $query->execute(['id' => $managerId]);
+    $phone = crm_normalize_whatsapp_number((string) ($query->fetchColumn() ?: ''));
+
+    if ($phone === '') {
+        return ['sent' => false, 'error' => 'Gestor sem número de WhatsApp válido.'];
+    }
+
+    $message = '📊 Relatório de campanhas — ' . crm_manager_monitor_limit((string) ($client['name'] ?? 'Cliente'), 120) . "\n"
+        . 'Período: ' . $dateFrom . ' a ' . $dateTo . "\n\n"
+        . "Resumo\n" . crm_manager_monitor_limit((string) ($report['summary'] ?? ''), 900) . "\n\n"
+        . "Destaques\n";
+    $highlights = is_array($report['highlights'] ?? null) ? array_slice($report['highlights'], 0, 5) : [];
+    $message .= $highlights === [] ? "• Nenhum destaque identificado.\n" : '';
+
+    foreach ($highlights as $highlight) {
+        if (is_scalar($highlight) && trim((string) $highlight) !== '') {
+            $message .= '• ' . crm_manager_monitor_limit((string) $highlight, 280) . "\n";
+        }
+    }
+
+    $alerts = is_array($report['alerts'] ?? null) ? array_slice($report['alerts'], 0, 5) : [];
+    $message .= "\nPontos de atenção\n";
+
+    if ($alerts === []) {
+        $message .= "• Nenhum ponto de atenção identificado pelo agente.\n";
+    }
+
+    foreach ($alerts as $alert) {
+        if (!is_array($alert)) {
+            continue;
+        }
+
+        $message .= '• ' . strtoupper((string) ($alert['severity'] ?? '')) . ': '
+            . crm_manager_monitor_limit((string) ($alert['title'] ?? 'Atenção'), 160) . "\n"
+            . crm_manager_monitor_limit((string) ($alert['description'] ?? ''), 350);
+
+        if (trim((string) ($alert['recommended_action'] ?? '')) !== '') {
+            $message .= "\nPróxima ação: " . crm_manager_monitor_limit((string) $alert['recommended_action'], 250);
+        }
+
+        $message .= "\n";
+    }
+
+    $message .= "\nRelatório gerado pelo agente de campanhas do CRM.";
+    crm_db_release();
+
+    try {
+        $result = crm_whatsapp_send_text($phone, crm_manager_monitor_limit($message, 3500), false);
+
+        if (($result['ok'] ?? false) !== true) {
+            return ['sent' => false, 'error' => crm_manager_monitor_limit((string) ($result['error'] ?? 'O provedor não confirmou o envio.'), 500)];
+        }
+
+        return ['sent' => true, 'error' => ''];
+    } catch (Throwable $error) {
+        return ['sent' => false, 'error' => 'Falha ao enviar pelo provedor de WhatsApp: ' . crm_manager_monitor_limit($error->getMessage(), 400)];
+    } finally {
+        try {
+            crm_db_reconnect();
+        } catch (Throwable $error) {
+            error_log('Não foi possível restabelecer a conexão após o envio do relatório programado: ' . crm_manager_monitor_limit($error->getMessage(), 300));
+        }
+    }
+}
+
+function crm_manager_ads_read_saved_report(PDO $pdo, int $clientId, string $dateFrom, string $dateTo): ?array
+{
+    $query = $pdo->prepare(
+        'SELECT report_summary, highlights_json, alerts_json, model
+         FROM manager_campaign_reports
+         WHERE client_id = :client_id AND date_from = :date_from AND date_to = :date_to
+         LIMIT 1'
+    );
+    $query->execute(['client_id' => $clientId, 'date_from' => $dateFrom, 'date_to' => $dateTo]);
+    $row = $query->fetch(PDO::FETCH_ASSOC);
+
+    if (!is_array($row)) {
+        return null;
+    }
+
+    $highlights = json_decode((string) ($row['highlights_json'] ?? '[]'), true);
+    $alerts = json_decode((string) ($row['alerts_json'] ?? '[]'), true);
+
+    return [
+        'summary' => (string) ($row['report_summary'] ?? ''),
+        'highlights' => is_array($highlights) ? $highlights : [],
+        'alerts' => is_array($alerts) ? $alerts : [],
+        'model' => (string) ($row['model'] ?? ''),
+    ];
+}
+
 function crm_manager_ads_read_dashboard(PDO $pdo): array
 {
     crm_manager_ads_ensure_schema($pdo);
@@ -1042,5 +1262,23 @@ function crm_manager_ads_read_dashboard(PDO $pdo): array
         return $sync;
     }, $syncsByClient));
 
-    return ['alerts' => $alerts, 'reports' => $reports, 'syncs' => $syncs];
+    $deliveryRows = $pdo->query(
+        'SELECT d.client_id, d.occurrence_date, d.date_from, d.date_to, d.frequency, d.status,
+                d.attempt_count, d.sent_at, d.error_message, d.updated_at
+         FROM manager_ads_report_deliveries d
+         INNER JOIN (
+             SELECT client_id, MAX(id) AS latest_id
+             FROM manager_ads_report_deliveries
+             GROUP BY client_id
+         ) latest ON latest.latest_id = d.id
+         ORDER BY d.updated_at DESC'
+    )->fetchAll(PDO::FETCH_ASSOC);
+
+    $deliveries = [];
+
+    foreach ($deliveryRows as $delivery) {
+        $deliveries[(int) ($delivery['client_id'] ?? 0)] = $delivery;
+    }
+
+    return ['alerts' => $alerts, 'reports' => $reports, 'syncs' => $syncs, 'deliveries' => $deliveries];
 }

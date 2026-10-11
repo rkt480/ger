@@ -9,6 +9,7 @@ require_once __DIR__ . '/lib/manager-ads.php';
 crm_require_sales_manager();
 
 $pdo = crm_db();
+crm_manager_ads_ensure_schema($pdo);
 $currentUser = crm_current_user();
 $currentUserName = trim((string) ($currentUser['name'] ?? $currentUser['username'] ?? 'gestor'));
 $currentUserName = $currentUserName !== '' ? $currentUserName : 'gestor';
@@ -26,6 +27,7 @@ $isAdmin = crm_current_user_is_admin();
 $campaignAlerts = $adsMonitor['alerts'];
 $campaignReports = $adsMonitor['reports'];
 $adsSyncs = $adsMonitor['syncs'];
+$adsDeliveries = $adsMonitor['deliveries'] ?? [];
 $reportsByClient = [];
 $syncByClient = [];
 
@@ -65,6 +67,7 @@ $flashMessages = [
     'group' => 'Grupo vinculado ao cliente.',
     'manager' => 'Gestor vinculado ao cliente.',
     'ad_accounts' => 'Contas de anúncios do cliente salvas.',
+    'ads_schedule' => 'Programação do relatório salva no cliente.',
     'ads_report' => 'Dados atualizados e relatório de campanhas gerado.',
 ];
 $errorMessages = [
@@ -78,6 +81,8 @@ $errorMessages = [
     'assign_manager' => 'Não foi possível vincular o gestor agora.',
     'invalid_ad_accounts' => 'Revise os IDs das contas de anúncios informados.',
     'save_ad_accounts' => 'Não foi possível salvar as contas de anúncios agora.',
+    'invalid_ads_schedule' => 'Revise a frequência, o dia e o horário da programação. Para ativá-la, vincule um gestor ao cliente.',
+    'save_ads_schedule' => 'Não foi possível salvar a programação do relatório agora.',
     'ads_period' => 'O período selecionado não é válido para gerar o relatório.',
     'ads_sync' => 'Não foi possível concluir a atualização e o relatório. Confira as conexões de anúncios, os IDs das contas e a chave da OpenAI.',
 ];
@@ -360,7 +365,7 @@ $clientMonitorStatus = static function (array $client): string {
               <article class="manager-delivery-card">
                 <span class="manager-delivery-status">Automatizado</span>
                 <h3>Relatório automático</h3>
-                <p>Sincroniza Meta Ads e Google Ads, organiza métricas por campanha e gera resumo com IA. Também há uma rotina diária e relatório mensal automático.</p>
+                <p>Sincroniza Meta Ads e Google Ads e gera resumos com IA. No card de cada cliente, programe o envio diário, semanal ou mensal do relatório ao gestor vinculado.</p>
                 <?php if ($isAdmin): ?><a href="settings.php#manager-ads-config">Configurar APIs e prompt</a><?php else: ?><strong>Relatórios recentes aparecem abaixo.</strong><?php endif; ?>
               </article>
               <article class="manager-delivery-card is-ready">
@@ -494,6 +499,7 @@ $clientMonitorStatus = static function (array $client): string {
                     $clientStatus = $clientMonitorStatus($client);
                     $clientSync = $syncByClient[$clientId] ?? null;
                     $clientReport = $reportsByClient[$clientId] ?? null;
+                    $clientDelivery = $adsDeliveries[$clientId] ?? null;
                   ?>
                   <article class="manager-client-card is-<?= htmlspecialchars($clientStatus) ?>">
                     <header class="manager-client-card-header">
@@ -543,6 +549,51 @@ $clientMonitorStatus = static function (array $client): string {
                           <button type="submit">Salvar contas</button>
                         </form>
                       </details>
+                      <details class="manager-ad-schedule-editor">
+                        <summary>
+                          Envio automático do relatório
+                          <span><?= !empty($client['ads_report_schedule_enabled']) ? 'Ativo' : 'Desativado' ?></span>
+                        </summary>
+                        <form method="post" action="save-manager-ads-schedule.php">
+                          <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
+                          <input type="hidden" name="client_id" value="<?= $clientId ?>" />
+                          <label class="manager-ad-schedule-toggle">
+                            <input type="checkbox" name="enabled" value="1" <?= !empty($client['ads_report_schedule_enabled']) ? 'checked' : '' ?> />
+                            Ativar envio para o gestor vinculado
+                          </label>
+                          <label for="manager-ads-frequency-<?= $clientId ?>">Frequência</label>
+                          <select id="manager-ads-frequency-<?= $clientId ?>" name="frequency">
+                            <option value="daily" <?= (string) ($client['ads_report_schedule_frequency'] ?? 'weekly') === 'daily' ? 'selected' : '' ?>>Diário — dia anterior</option>
+                            <option value="weekly" <?= (string) ($client['ads_report_schedule_frequency'] ?? 'weekly') === 'weekly' ? 'selected' : '' ?>>Semanal — últimos 7 dias encerrados</option>
+                            <option value="monthly" <?= (string) ($client['ads_report_schedule_frequency'] ?? 'weekly') === 'monthly' ? 'selected' : '' ?>>Mensal — mês anterior</option>
+                          </select>
+                          <label for="manager-ads-weekday-<?= $clientId ?>">Dia da semana (para envio semanal)</label>
+                          <select id="manager-ads-weekday-<?= $clientId ?>" name="weekday">
+                            <?php foreach ([1 => 'Segunda-feira', 2 => 'Terça-feira', 3 => 'Quarta-feira', 4 => 'Quinta-feira', 5 => 'Sexta-feira', 6 => 'Sábado', 7 => 'Domingo'] as $weekdayValue => $weekdayLabel): ?>
+                              <option value="<?= $weekdayValue ?>" <?= (int) ($client['ads_report_schedule_weekday'] ?? 1) === $weekdayValue ? 'selected' : '' ?>><?= $weekdayLabel ?></option>
+                            <?php endforeach; ?>
+                          </select>
+                          <label for="manager-ads-day-<?= $clientId ?>">Dia do mês (para envio mensal)</label>
+                          <select id="manager-ads-day-<?= $clientId ?>" name="month_day">
+                            <?php for ($scheduleDay = 1; $scheduleDay <= 28; $scheduleDay++): ?>
+                              <option value="<?= $scheduleDay ?>" <?= (int) ($client['ads_report_schedule_day'] ?? 1) === $scheduleDay ? 'selected' : '' ?>>Dia <?= $scheduleDay ?></option>
+                            <?php endfor; ?>
+                          </select>
+                          <label for="manager-ads-time-<?= $clientId ?>">Horário</label>
+                          <input id="manager-ads-time-<?= $clientId ?>" type="time" name="time" value="<?= htmlspecialchars(substr((string) ($client['ads_report_schedule_time'] ?? '08:00:00'), 0, 5)) ?>" required />
+                          <small>O horário segue o fuso configurado no CRM. O relatório em texto inclui resumo, destaques e pontos de atenção gerados conforme o prompt do agente. O gestor precisa ter um WhatsApp válido cadastrado e o provedor conectado.</small>
+                          <button type="submit">Salvar programação</button>
+                        </form>
+                      </details>
+                    <?php endif; ?>
+                    <?php if (is_array($clientDelivery)): ?>
+                      <?php if ((string) ($clientDelivery['status'] ?? '') === 'sent'): ?>
+                        <span class="manager-ads-delivery-status is-success">Último relatório enviado em <?= htmlspecialchars($formatDate($clientDelivery['sent_at'] ?? '')) ?></span>
+                      <?php elseif ((string) ($clientDelivery['status'] ?? '') === 'failed'): ?>
+                        <span class="manager-ads-delivery-status is-error">Falha no envio: <?= htmlspecialchars((string) ($clientDelivery['error_message'] ?? 'verifique o WhatsApp do gestor')) ?></span>
+                      <?php elseif ((string) ($clientDelivery['status'] ?? '') === 'processing'): ?>
+                        <span class="manager-ads-delivery-status">Envio do relatório em andamento</span>
+                      <?php endif; ?>
                     <?php endif; ?>
                     <div class="manager-ads-client-status">
                       <strong>Campanhas</strong>

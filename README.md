@@ -104,6 +104,21 @@ explícita de envio, o alerta fica apenas no painel. O WhatsApp é enviado ao
 gestor atribuído ao cliente, desde que o número dele esteja cadastrado e o
 provedor esteja configurado.
 
+Cada card de cliente também permite programar o envio do relatório em texto ao
+gestor vinculado, com resumo, destaques e pontos de atenção guiados pelo prompt
+do agente. A programação fica desativada até o administrador ativá-la e pode
+ser diária (dia anterior), semanal (sete dias encerrados) ou mensal (mês
+anterior). O horário usa o fuso configurado no CRM. Para verificar as
+programações, acrescente um cron de um minuto:
+
+```cron
+* * * * * /Applications/XAMPP/xamppfiles/bin/php /Applications/XAMPP/xamppfiles/htdocs/gerente/run-manager-ads-scheduled-reports.php >/dev/null 2>&1
+```
+
+Em produção, ajuste os caminhos. O envio usa o WhatsApp do gestor atribuído ao
+cliente; ele precisa ter um número válido e o provedor de WhatsApp deve estar
+conectado. O card mostra o status da última tentativa.
+
 Os alertas de campanha podem ser resolvidos no painel; as resoluções ficam
 registradas junto ao alerta para acompanhamento humano.
 

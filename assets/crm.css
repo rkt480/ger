@@ -8350,6 +8350,97 @@ html[data-theme="light"] .manager-delivery-card strong {
   font-size: 0.65rem;
 }
 
+.manager-ad-schedule-editor {
+  margin: 0 0 12px;
+  padding: 0 0 11px;
+  border-bottom: 1px solid rgba(154, 169, 197, 0.1);
+}
+
+.manager-ad-schedule-editor summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #b8c4d7;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 750;
+  list-style: none;
+}
+
+.manager-ad-schedule-editor summary::-webkit-details-marker {
+  display: none;
+}
+
+.manager-ad-schedule-editor summary span {
+  color: #7f8da2;
+  font-size: 0.61rem;
+  font-weight: 600;
+}
+
+.manager-ad-schedule-editor form {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.manager-ad-schedule-editor label {
+  display: grid;
+  gap: 5px;
+  color: #8795aa;
+  font-size: 0.63rem;
+  font-weight: 750;
+}
+
+.manager-ad-schedule-editor label.manager-ad-schedule-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #b8c4d7;
+}
+
+.manager-ad-schedule-editor input:not([type="checkbox"]),
+.manager-ad-schedule-editor select {
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 9px;
+  font-size: 0.68rem;
+}
+
+.manager-ad-schedule-editor input[type="checkbox"] {
+  accent-color: #8795ff;
+}
+
+.manager-ad-schedule-editor small {
+  color: #7f8da2;
+  font-size: 0.61rem;
+  line-height: 1.45;
+}
+
+.manager-ad-schedule-editor button {
+  min-height: 31px;
+  justify-self: end;
+  padding: 5px 9px;
+  font-size: 0.65rem;
+}
+
+.manager-ads-delivery-status {
+  display: block;
+  margin: -2px 0 8px;
+  color: #95a2b6;
+  font-size: 0.62rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.manager-ads-delivery-status.is-success {
+  color: #72dcb1;
+}
+
+.manager-ads-delivery-status.is-error {
+  color: #ff9eac;
+}
+
 .manager-form-help {
   display: block;
   margin: -3px 0 10px;
@@ -8373,6 +8464,7 @@ html[data-theme="light"] .manager-delivery-card strong {
 .manager-client-grid[data-view-mode="list"] .manager-client-kpis,
 .manager-client-grid[data-view-mode="list"] .manager-client-manager-form,
 .manager-client-grid[data-view-mode="list"] .manager-ad-account-editor,
+.manager-client-grid[data-view-mode="list"] .manager-ad-schedule-editor,
 .manager-client-grid[data-view-mode="list"] .manager-ads-client-status {
   grid-column: 1;
 }
@@ -9916,6 +10008,33 @@ html[data-theme="light"] .manager-ad-account-editor {
 
 html[data-theme="light"] .manager-ad-account-editor summary {
   color: #334155;
+}
+
+html[data-theme="light"] .manager-ad-schedule-editor {
+  border-color: rgba(124, 139, 161, 0.16);
+}
+
+html[data-theme="light"] .manager-ad-schedule-editor summary,
+html[data-theme="light"] .manager-ad-schedule-editor label.manager-ad-schedule-toggle {
+  color: #334155;
+}
+
+html[data-theme="light"] .manager-ad-schedule-editor summary span,
+html[data-theme="light"] .manager-ad-schedule-editor label,
+html[data-theme="light"] .manager-ad-schedule-editor small {
+  color: #64748b;
+}
+
+html[data-theme="light"] .manager-ads-delivery-status {
+  color: #64748b;
+}
+
+html[data-theme="light"] .manager-ads-delivery-status.is-success {
+  color: #16845e;
+}
+
+html[data-theme="light"] .manager-ads-delivery-status.is-error {
+  color: #c0344d;
 }
 
 html[data-theme="light"] .manager-ad-account-editor summary span,
