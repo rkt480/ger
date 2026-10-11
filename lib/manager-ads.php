@@ -1013,7 +1013,7 @@ function crm_manager_ads_claim_scheduled_delivery(
 
     try {
         $query = $pdo->prepare(
-            'SELECT id, status, attempt_count, last_attempt_at
+            'SELECT id, status, attempt_count, last_attempt_at, sent_at
              FROM manager_ads_report_deliveries
              WHERE client_id = :client_id AND occurrence_date = :occurrence_date
              LIMIT 1 FOR UPDATE'
@@ -1042,9 +1042,30 @@ function crm_manager_ads_claim_scheduled_delivery(
             $attempt = 1;
         } else {
             $previousAttempts = (int) ($existing['attempt_count'] ?? 0);
-            $retryAllowed = (string) ($existing['status'] ?? '') === 'failed'
+            $status = (string) ($existing['status'] ?? '');
+            $retryFailedDelivery = $status === 'failed'
                 && $previousAttempts < 5
                 && (string) ($existing['last_attempt_at'] ?? '') < $retryBefore;
+            $retryForUpdatedReport = false;
+
+            if ($status === 'sent' && $previousAttempts < 5 && trim((string) ($existing['sent_at'] ?? '')) !== '') {
+                $reportUpdatedQuery = $pdo->prepare(
+                    'SELECT updated_at
+                     FROM manager_campaign_reports
+                     WHERE client_id = :client_id AND date_from = :date_from AND date_to = :date_to
+                     LIMIT 1'
+                );
+                $reportUpdatedQuery->execute([
+                    'client_id' => $clientId,
+                    'date_from' => $dateFrom,
+                    'date_to' => $dateTo,
+                ]);
+                $reportUpdatedAt = (string) ($reportUpdatedQuery->fetchColumn() ?: '');
+                $retryForUpdatedReport = $reportUpdatedAt !== ''
+                    && $reportUpdatedAt > (string) $existing['sent_at'];
+            }
+
+            $retryAllowed = $retryFailedDelivery || $retryForUpdatedReport;
 
             if (!$retryAllowed) {
                 $pdo->commit();
@@ -1056,7 +1077,7 @@ function crm_manager_ads_claim_scheduled_delivery(
                 'UPDATE manager_ads_report_deliveries
                  SET frequency = :frequency, date_from = :date_from, date_to = :date_to,
                      status = "processing", attempt_count = :attempt_count, last_attempt_at = :last_attempt_at,
-                     error_message = NULL, updated_at = :updated_at
+                     sent_at = NULL, error_message = NULL, updated_at = :updated_at
                  WHERE id = :id'
             );
             $update->execute([

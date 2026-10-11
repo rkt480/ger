@@ -112,6 +112,15 @@ try {
             $attempt = crm_manager_ads_claim_scheduled_delivery(crm_db(), $clientId, $occurrenceDate, $frequency, $dateFrom, $dateTo);
 
             if ($attempt === 0) {
+                $results[] = [
+                    'client_id' => $clientId,
+                    'occurrence_date' => $occurrenceDate,
+                    'date_from' => $dateFrom,
+                    'date_to' => $dateTo,
+                    'sent' => false,
+                    'skipped' => true,
+                    'reason' => 'A ocorrência já foi processada e não há uma nova entrega elegível no momento.',
+                ];
                 continue;
             }
 
