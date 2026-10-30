@@ -144,18 +144,18 @@ foreach ($filteredLeads as $lead) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="csrf-token" content="<?= htmlspecialchars(crm_csrf_token()) ?>" />
     <meta name="theme-color" content="#0b1018" />
-    <meta name="apple-mobile-web-app-title" content="CRM MM Design" />
-    <title>CRM MM Design</title>
+    <meta name="apple-mobile-web-app-title" content="Gerencial" />
+    <title>Gerencial</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/icon-180.png" />
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261030-clean-layout-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261030-ux-contrast-v1" />
   </head>
   <body class="leads-page">
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegação do CRM">
         <a class="brand" href="index.php" aria-label="Início">
-          <span class="brand-mark"><img src="./assets/brand-mark.svg" alt="MM DESIGN" /></span>
+          <span class="brand-name">Gerencial</span>
         </a>
         <nav class="sidebar-tabs" aria-label="Atalhos do CRM">
           <a class="sidebar-whatsapp" href="whatsapp.php" title="Conversas do WhatsApp" aria-label="Conversas do WhatsApp">

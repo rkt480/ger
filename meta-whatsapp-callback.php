@@ -33,9 +33,9 @@ if ($received !== []) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,nofollow" />
-    <title>Cadastro WhatsApp | MM Design</title>
+    <title>Cadastro WhatsApp | Gerencial</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261030-clean-layout-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261030-ux-contrast-v1" />
   </head>
   <body>
     <main class="workspace" style="min-height: 100vh; padding: 32px;">
@@ -49,7 +49,7 @@ if ($received !== []) {
           </div>
         <?php else: ?>
           <div class="alert success">
-            Cadastro retornou para o MM Design. Os dados também foram registrados no log da Meta WhatsApp.
+            Cadastro retornou ao sistema Gerencial. Os dados também foram registrados no log da Meta WhatsApp.
           </div>
 
           <div class="settings-grid">

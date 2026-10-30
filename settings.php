@@ -281,13 +281,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Configurações | CRM</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261030-clean-layout-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261030-ux-contrast-v1" />
   </head>
   <body class="settings-page">
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegação do CRM">
         <a class="brand" href="index.php" aria-label="Início">
-          <span class="brand-mark"><img src="./assets/brand-mark.svg" alt="MM DESIGN" /></span>
+          <span class="brand-name">Gerencial</span>
         </a>
         <nav class="sidebar-tabs" aria-label="Atalhos do CRM">
           <a class="sidebar-whatsapp" href="whatsapp.php" title="Conversas do WhatsApp" aria-label="Conversas do WhatsApp">

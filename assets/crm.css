@@ -11349,7 +11349,7 @@ body:not(.auth-page)::before { display: none !important; }
   text-align: left;
 }
 .brand::after {
-  content: "MM DESIGN";
+  content: "Gerencial";
   color: #303234;
   font-size: .78rem;
   font-weight: 800;
@@ -11520,4 +11520,247 @@ button[type="submit"]:not(.danger), .app-header nav a:first-child, .app-header n
 @media (max-width: 560px) {
   .topbar-nav { width: max-content; }
   .topbar-nav a { padding: 7px 9px; font-size: .7rem; }
+}
+
+/* Gerencial wordmark: text only, with no company logo. */
+.brand { gap: 0; }
+.brand::after { content: none; }
+.brand-name { color: #303234; font-size: .82rem; font-weight: 800; letter-spacing: .02em; }
+.auth-brand { color: #252729; font-size: 1.55rem; font-weight: 800; letter-spacing: -.035em; }
+@media (max-width: 880px) { .brand-name { display: inline; font-size: .72rem; } }
+
+/* UX review: enforce readable contrast on the light interface. The legacy
+   dark palette contains direct white/gray text colors, so tokens alone do
+   not fix every card, metric, form label, and status summary. */
+html[data-theme="light"] {
+  --muted: #59636f;
+  --soft: #64748b;
+  --line: #e2e4e1;
+  --line-strong: #cfd3cf;
+}
+
+html[data-theme="light"] body:not(.auth-page) {
+  color: #202124 !important;
+  background: #f4f4f2 !important;
+}
+
+html[data-theme="light"] body:not(.auth-page) :is(
+  .metrics strong,
+  .dashboard-metrics strong,
+  .commercial-summary strong,
+  .kanban-column-header strong,
+  .kanban-card h2,
+  .kanban-card strong,
+  .manager-monitor-stats strong,
+  .manager-client-kpis strong,
+  .manager-detail-summary strong,
+  .manager-campaign-report-card header span,
+  .manager-campaign-report-metrics li strong,
+  .manager-ads-client-status > strong,
+  .dashboard-table-row strong,
+  .dashboard-kpis dd,
+  .score-summary > strong,
+  .lead-score strong
+) {
+  color: #202124 !important;
+}
+
+html[data-theme="light"] body:not(.auth-page) :is(
+  label,
+  .checkbox-field,
+  .metrics span,
+  dt,
+  .settings-help,
+  .commercial-help,
+  .manager-form-help,
+  .manager-client-manager-form label,
+  .manager-ad-account-editor label,
+  .manager-ad-schedule-editor label,
+  .manager-page-header .page-intro,
+  .integration-description,
+  .flow-messages-label,
+  .wa-template-form label span
+) {
+  color: #4b5563 !important;
+}
+
+html[data-theme="light"] body:not(.auth-page) :is(
+  input,
+  select,
+  textarea,
+  .manager-command-search input,
+  .manager-monitor-search input
+) {
+  color: #292b2d !important;
+  background-color: #fff;
+  border-color: #d5d8d5;
+}
+
+html[data-theme="light"] body:not(.auth-page) :is(input, textarea)::placeholder {
+  color: #6b7280 !important;
+  opacity: 1;
+}
+
+html[data-theme="light"] body:not(.auth-page) :is(
+  .dashboard-metrics small,
+  .manager-monitor-stats,
+  .manager-monitor-stats span,
+  .manager-client-kpis span,
+  .manager-detail-summary span,
+  .manager-campaign-report-card header small,
+  .manager-campaign-report-card footer,
+  .manager-campaign-report-card p,
+  .manager-campaign-report-card li,
+  .manager-campaign-report-metrics li span,
+  .manager-campaign-report-metrics li small,
+  .manager-ads-client-status > span,
+  .manager-ads-client-status > small,
+  .manager-group-row-content small,
+  .manager-group-row-meta time,
+  .manager-message header time
+) {
+  color: #59636f !important;
+}
+
+html[data-theme="light"] body:not(.auth-page) .kanban-column-header strong {
+  background: #fff;
+  border-color: #d9ddda;
+}
+
+html[data-theme="light"] body:not(.auth-page) .manager-monitor-stats span {
+  background: #f1f2f0;
+  border-color: #dfe2de;
+}
+
+html[data-theme="light"] body:not(.auth-page) .manager-alert-item :is(h3, p, blockquote, small, time, header span) {
+  color: #39424d;
+}
+
+html[data-theme="light"] body:not(.auth-page) .manager-alert-item header span {
+  font-weight: 750;
+}
+
+/* The WhatsApp workspace has its own four-column grid. Give the navigation
+   enough room for its labels and collapse the lead detail panel before the
+   inbox and conversation columns become cramped. */
+.whatsapp-crm-page .wa-web-shell {
+  grid-template-columns: 220px minmax(280px, 320px) minmax(0, 1fr) minmax(230px, 280px);
+  gap: 14px;
+  width: 100%;
+  padding: 16px;
+  background: #f4f4f2;
+}
+
+.whatsapp-crm-page .sidebar {
+  width: auto;
+  height: calc(100vh - 32px);
+  padding: 16px 12px;
+  background: #f0f0ee;
+  border: 1px solid #e6e6e2;
+  border-radius: 16px;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.whatsapp-crm-page .sidebar .brand {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e2e2de;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.whatsapp-crm-page .sidebar .sidebar-tabs {
+  width: 100%;
+  justify-self: stretch;
+  justify-items: stretch;
+  align-content: start;
+}
+
+.whatsapp-crm-page .sidebar .sidebar-tabs a {
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
+  justify-content: flex-start;
+  padding: 0 10px;
+  border-radius: 9px;
+  box-shadow: none;
+}
+
+.whatsapp-crm-page .wa-inbox,
+.whatsapp-crm-page .wa-thread,
+.whatsapp-crm-page .wa-lead-panel {
+  background: #fff;
+  border-color: #e3e5e2;
+  box-shadow: 0 1px 4px rgba(22, 24, 25, .05);
+  backdrop-filter: none;
+}
+
+.whatsapp-crm-page .wa-search,
+.whatsapp-crm-page .wa-search input {
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 1180px) and (min-width: 761px) {
+  .whatsapp-crm-page .wa-web-shell {
+    grid-template-columns: 190px minmax(260px, 310px) minmax(0, 1fr);
+  }
+
+  .whatsapp-crm-page .wa-lead-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 880px) and (min-width: 761px) {
+  .whatsapp-crm-page .wa-web-shell {
+    grid-template-columns: 176px minmax(240px, 290px) minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .whatsapp-crm-page .sidebar .sidebar-tabs a::after {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .whatsapp-crm-page .wa-web-shell {
+    width: 100%;
+    padding: 10px 10px calc(10px + var(--wa-mobile-bottom-clearance));
+  }
+
+  .whatsapp-crm-page .sidebar {
+    position: relative;
+    top: auto;
+    width: 100%;
+    height: 64px;
+    min-height: 64px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: 1fr;
+    gap: 12px;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 16px;
+  }
+
+  .whatsapp-crm-page .sidebar .brand {
+    width: auto;
+    max-width: 122px;
+    padding: 4px 8px;
+    border: 0;
+    background: transparent;
+  }
+
+  .whatsapp-crm-page .sidebar .sidebar-tabs { display: none; }
+
+  .whatsapp-crm-page .sidebar .sidebar-exit {
+    width: auto;
+    min-width: 64px;
+    height: 40px;
+    min-height: 40px;
+    margin: 0;
+    padding: 0 12px;
+    font-size: .78rem;
+  }
 }

@@ -1,11 +1,9 @@
-const CACHE_NAME = "mm-design-crm-v31";
+const CACHE_NAME = "gerencial-v32";
 const APP_SHELL = [
-  "./assets/crm.css?v=20260813-lazy-lead-details-v1",
+  "./assets/crm.css?v=20261030-ux-contrast-v1",
   "./assets/crm.js?v=20260824-push-reliability-v1",
   "./assets/crm-navigation.js?v=20260812-fast-navigation-v3",
   "./assets/icon.svg",
-  "./assets/brand-mark.svg",
-  "./assets/brand-logo.svg",
   "./assets/icon-180.png",
   "./assets/icon-192.png",
   "./assets/icon-512.png",
@@ -77,7 +75,7 @@ self.addEventListener("push", (event) => {
     data = { body: event.data ? event.data.text() : "Novo evento no CRM." };
   }
 
-  const title = data.title || "MM Design";
+  const title = data.title || "Gerencial";
   const options = {
     body: data.body || "Você tem uma nova atualização.",
     icon: data.icon || "./assets/icon-192.png",

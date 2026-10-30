@@ -1551,15 +1551,15 @@ if ($isWaConversationFragment) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken) ?>" />
-    <title>WhatsApp | MM Design</title>
+    <title>WhatsApp | Gerencial</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261030-clean-layout-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261030-ux-contrast-v1" />
   </head>
   <body class="whatsapp-page whatsapp-crm-page" data-wa-initial-view="<?= is_array($activeLead) || is_array($activeGroup) ? 'thread' : 'inbox' ?>" data-wa-mobile-view="<?= is_array($activeLead) || is_array($activeGroup) ? 'thread' : 'inbox' ?>" data-wa-active-lead-id="<?= htmlspecialchars((string) ($activeLead['id'] ?? '')) ?>" data-wa-active-group-id="<?= is_array($activeGroup) ? (int) ($activeGroup['group_id'] ?? 0) : '' ?>" data-wa-incoming-signature="<?= htmlspecialchars(is_array($activeLead) ? crm_whatsapp_incoming_signature($activeLead) : '') ?>" data-wa-lead-feed-version="<?= htmlspecialchars($leadFeedVersion) ?>">
     <main class="wa-web-shell" aria-label="Atendimento WhatsApp do CRM">
       <aside class="sidebar" aria-label="Navegação do CRM">
         <a class="brand" href="index.php" aria-label="Início" data-no-navigation-prefetch>
-          <span class="brand-mark"><img src="./assets/brand-mark.svg" alt="MM DESIGN" /></span>
+          <span class="brand-name">Gerencial</span>
         </a>
         <nav class="sidebar-tabs" aria-label="Atalhos do CRM">
           <a class="sidebar-kanban" href="index.php" title="Voltar para o Kanban" aria-label="Voltar para o Kanban" data-no-navigation-prefetch>
@@ -2915,7 +2915,7 @@ if ($isWaConversationFragment) {
           headView.setInt16(16, 0, true);
           opusHead[18] = 0;
 
-          const vendor = encoder.encode("MM Design");
+          const vendor = encoder.encode("Gerencial");
           const opusTags = new Uint8Array(16 + vendor.length);
           const tagsView = new DataView(opusTags.buffer);
           opusTags.set(encoder.encode("OpusTags"));

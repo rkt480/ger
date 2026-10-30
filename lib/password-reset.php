@@ -38,7 +38,7 @@ function crm_send_password_reset_email(array $user, string $resetUrl): bool
     }
 
     $config = crm_config();
-    $companyName = trim((string) ($config['company_name'] ?? 'MM Design')) ?: 'MM Design';
+    $companyName = trim((string) ($config['company_name'] ?? 'Gerencial')) ?: 'Gerencial';
     $name = trim((string) ($user['name'] ?? '')) ?: 'usuário';
     $subject = 'Redefinição de senha - ' . $companyName;
     $body = "Olá, {$name}!\n\n"

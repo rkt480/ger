@@ -56,7 +56,7 @@ $implementationSteps = [
     'Cadastrar todos os vendedores e gestores com perfil correto.',
     'Ativar somente quem deve receber lead novo na roleta.',
     'Definir o peso de cada vendedor conforme capacidade ou senioridade.',
-    'Configurar o tempo de SLA considerando o padrão de atendimento da mmdesign.',
+    'Configurar o tempo de SLA considerando o padrão de atendimento do sistema.',
     'Manter ativada a pausa do SLA fora do horário de acesso dos vendedores.',
     'Selecionar as etapas do kanban onde falta de movimento deve gerar redistribuição.',
     'Criar um lead de teste, validar atribuição, conversa e restrição de acesso por vendedor.',
@@ -69,13 +69,13 @@ $implementationSteps = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Suporte Interno | CRM</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261030-clean-layout-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261030-ux-contrast-v1" />
   </head>
   <body class="settings-page support-page">
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegação do CRM">
         <a class="brand" href="index.php" aria-label="Início">
-          <span class="brand-mark"><img src="./assets/brand-mark.svg" alt="MM DESIGN" /></span>
+          <span class="brand-name">Gerencial</span>
         </a>
         <nav class="sidebar-tabs" aria-label="Atalhos do CRM">
           <a class="sidebar-whatsapp" href="whatsapp.php" title="Conversas do WhatsApp" aria-label="Conversas do WhatsApp">
@@ -145,7 +145,7 @@ $implementationSteps = [
               <h2>Como operar equipe, roleta e SLA</h2>
             </div>
             <p>
-              Esta página documenta os recursos criados para o controle comercial da mmdesign:
+              Esta página documenta os recursos criados para o controle comercial do sistema:
               vendedores, atribuição de leads, proteção por carteira, conversas vinculadas e
               redistribuição quando um lead fica parado no kanban.
             </p>

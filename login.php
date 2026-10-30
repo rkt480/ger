@@ -46,17 +46,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0b1018" />
-    <meta name="apple-mobile-web-app-title" content="CRM MM Design" />
-    <title>CRM MM Design</title>
+    <meta name="apple-mobile-web-app-title" content="Gerencial" />
+    <title>Gerencial</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/icon-180.png" />
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261030-clean-layout-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261030-ux-contrast-v1" />
   </head>
   <body class="auth-page">
     <main class="auth-card">
       <div class="auth-brand">
-        <img src="./assets/brand-logo.svg" alt="MM DESIGN" />
+        Gerencial
       </div>
       <p class="auth-description">Acesse sua conta para visualizar e gerenciar os contatos recebidos</p>
 

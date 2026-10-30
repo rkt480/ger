@@ -43,12 +43,12 @@ $isNew = $currentForm === null;
     <meta name="csrf-token" content="<?= htmlspecialchars(crm_csrf_token()) ?>" />
     <title>Formulários | CRM</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261030-clean-layout-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261030-ux-contrast-v1" />
   </head>
   <body>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegação do CRM">
-        <a class="brand" href="index.php" aria-label="Início"><span class="brand-mark"><img src="./assets/brand-mark.svg" alt="MM DESIGN" /></span></a>
+        <a class="brand" href="index.php" aria-label="Início"><span class="brand-name">Gerencial</span></a>
         <nav class="sidebar-tabs" aria-label="Atalhos do CRM">
           <a class="sidebar-whatsapp" href="whatsapp.php" title="Conversas do WhatsApp" aria-label="Conversas do WhatsApp">
             <svg viewBox="0 0 24 24" aria-hidden="true">
