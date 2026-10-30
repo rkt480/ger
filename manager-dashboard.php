@@ -160,8 +160,8 @@ $clientMonitorStatus = static function (array $client): string {
     <meta name="csrf-token" content="<?= htmlspecialchars(crm_csrf_token()) ?>" />
     <meta name="theme-color" content="#070a10" />
     <title>Monitoramento | Gerente</title>
-    <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261002-team-digest-v1" />
+    <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
+    <link rel="stylesheet" href="./assets/crm.css?v=20261030-clean-layout-v1" />
   </head>
   <body class="settings-page manager-monitor-page" data-manager-feed-version="<?= htmlspecialchars($managerFeedVersion) ?>" data-manager-user-key="<?= htmlspecialchars($managerUserKey) ?>">
     <div class="app-shell">
@@ -728,7 +728,7 @@ $clientMonitorStatus = static function (array $client): string {
       </div>
     </div>
     <script src="./assets/crm.js?v=20260911-coach-v5"></script>
-    <script src="./assets/manager-dashboard.js?v=20261002-campaign-v1"></script>
+    <script src="./assets/manager-dashboard.js?v=20261030-clean-layout-v1"></script>
     <script src="./assets/crm-navigation.js?v=20260812-fast-navigation-v3"></script>
   </body>
 </html>

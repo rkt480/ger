@@ -114,8 +114,8 @@ $analysisStatusLabel = $pendingAnalysisCount > 0
     <meta name="csrf-token" content="<?= htmlspecialchars(crm_csrf_token()) ?>" />
     <meta name="theme-color" content="#070a10" />
     <title><?= htmlspecialchars($groupName) ?> | Monitoramento</title>
-    <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260912-contrast-v1" />
+    <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
+    <link rel="stylesheet" href="./assets/crm.css?v=20261030-clean-layout-v1" />
   </head>
   <body class="settings-page manager-monitor-page manager-group-page">
     <div class="app-shell">

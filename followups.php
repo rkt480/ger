@@ -53,8 +53,8 @@ function human_delay(int $minutes): string
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="csrf-token" content="<?= htmlspecialchars(crm_csrf_token()) ?>" />
     <title>Fluxos de Follow-up | CRM</title>
-    <script src="./assets/theme.js?v=20260912-theme-v2"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20260912-contrast-v1" />
+    <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
+    <link rel="stylesheet" href="./assets/crm.css?v=20261030-clean-layout-v1" />
   </head>
   <body class="followups-page">
     <div class="app-shell">

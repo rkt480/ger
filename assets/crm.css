@@ -11284,3 +11284,240 @@ html[data-theme="light"] .manager-team-digest ul,
 html[data-theme="light"] .manager-team-digest header small {
   color: #64748b;
 }
+
+/* Clean CRM refresh inspired by the supplied dashboard reference. */
+:root {
+  color-scheme: light;
+  --bg: #f4f4f2;
+  --surface: #fff;
+  --surface-solid: #fff;
+  --surface-soft: #f8f8f6;
+  --text: #202124;
+  --muted: #73777d;
+  --soft: #92969b;
+  --line: #e7e7e4;
+  --line-strong: #d9d9d5;
+  --blue: #343638;
+  --cyan: #596b68;
+  --green: #16866f;
+  --yellow: #b28b31;
+  --red: #c35a5a;
+  --shadow: 0 16px 40px rgba(31, 33, 34, .06);
+  --shadow-soft: 0 2px 8px rgba(31, 33, 34, .045);
+}
+
+html { background: #f4f4f2; }
+body:not(.auth-page) {
+  color: #202124;
+  background: #f4f4f2 !important;
+  font-family: Manrope, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+body:not(.auth-page)::before { display: none !important; }
+.app-shell {
+  grid-template-columns: 236px minmax(0, 1fr);
+  gap: 20px;
+  width: min(1840px, 100%);
+  padding: 16px 20px 20px;
+}
+.sidebar {
+  position: sticky;
+  top: 16px;
+  justify-items: stretch;
+  justify-self: stretch;
+  width: auto;
+  height: calc(100vh - 32px);
+  min-height: 540px;
+  gap: 20px;
+  padding: 18px 14px;
+  background: #f0f0ee;
+  border: 1px solid #e6e6e2;
+  border-radius: 16px;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.brand {
+  display: flex;
+  width: 100%;
+  justify-self: stretch;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid #e2e2de;
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+}
+.brand::after {
+  content: "MM DESIGN";
+  color: #303234;
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .055em;
+}
+.brand-mark {
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #e8e8e5;
+  box-shadow: none;
+}
+.sidebar-tabs {
+  display: flex;
+  width: 100%;
+  justify-self: stretch;
+  justify-items: stretch;
+  align-content: start;
+  flex-direction: column;
+  gap: 5px;
+}
+.sidebar-tabs a {
+  display: flex;
+  width: 100%;
+  height: 42px;
+  min-height: 42px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 11px;
+  padding: 0 11px;
+  color: #696d70;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  box-shadow: none;
+  font-size: .8rem;
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: left;
+  white-space: nowrap;
+}
+.sidebar-tabs a::after {
+  content: attr(title);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-tabs a[title="Conversas do WhatsApp"]::after { content: "WhatsApp"; }
+.sidebar-tabs a[title="Voltar para o Kanban"]::after { content: "Contatos"; }
+.sidebar-tabs a[title="Dashboard do gestor"]::after { content: "Dashboard"; }
+.sidebar-tabs a[title="Área comercial"]::after { content: "Comercial"; }
+.sidebar-tabs a[title="Templates WhatsApp"]::after { content: "Templates"; }
+.sidebar-tabs a svg { flex: 0 0 18px; width: 18px; height: 18px; color: #808488; }
+.sidebar-tabs a:hover { color: #252729; background: #e7e7e4; border-color: transparent; }
+.sidebar-tabs a:hover svg { color: #303234; }
+.sidebar-tabs a.active {
+  color: #222426;
+  background: #fff;
+  border-color: #e4e4e0;
+  box-shadow: 0 1px 2px rgba(0,0,0,.035);
+}
+.sidebar-tabs a.active svg { color: #262829; }
+.sidebar-exit {
+  justify-self: stretch;
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  color: #73777a;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  box-shadow: none;
+  font-size: .78rem;
+  text-align: left;
+}
+.sidebar-exit::before { content: none; }
+.sidebar-exit:hover { color: #292b2d; background: #e7e7e4; }
+.workspace { min-width: 0; padding: 0 2px 20px; }
+.topbar {
+  min-height: 54px;
+  justify-content: space-between;
+  margin: 0 0 23px;
+  padding: 0 4px 10px;
+  border-bottom: 1px solid #e5e5e1;
+}
+.topbar-nav { gap: 5px; }
+.topbar-nav a {
+  padding: 8px 11px;
+  color: #777b7e;
+  border-radius: 8px;
+  font-size: .76rem;
+  font-weight: 650;
+}
+.topbar-nav a:hover { color: #252729; background: #e9e9e6; }
+.topbar-nav a.active { color: #252729; background: #fff; border-color: #e5e5e1; }
+.app-header { margin-bottom: 20px; border-color: #e5e5e1; }
+.app-header h1, .manager-page-header h1 { color: #202224; letter-spacing: -.035em; }
+.eyebrow { color: #85898b; letter-spacing: .09em; }
+.metrics article, .lead-card, .empty-state, .automation-card, .flow-item,
+.commercial-block, .lead-details div, .lead-timeline-event-card,
+.lead-contact-edit, .remove-column, .kanban-edit-row,
+.manager-card, .manager-detail-card, .manager-alerts-card,
+.manager-group-card, .support-card, .settings-group, .integration-card,
+.wa-template-list-card, .wa-template-form-card {
+  color: #252729;
+  background: #fff;
+  border: 1px solid #e7e7e4;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(22, 24, 25, .035);
+}
+.kanban-column { background: #efefed; border: 1px solid #e6e6e2; border-radius: 12px; box-shadow: none; }
+.kanban-card { background: #fff; border-color: #e6e6e2; border-radius: 10px; box-shadow: 0 1px 3px rgba(22,24,25,.045); }
+button, input, select, textarea { font-family: inherit; }
+input, select, textarea {
+  color: #292b2d;
+  background-color: #fff;
+  border-color: #dededb;
+  border-radius: 9px;
+}
+button, .app-header nav a, .app-header nav button {
+  color: #343638;
+  background: #fff;
+  border-color: #dededb;
+  border-radius: 9px;
+  box-shadow: none;
+}
+button:hover, .app-header nav a:hover, .app-header nav button:hover {
+  color: #17191a;
+  background: #f6f6f4;
+  border-color: #cfcfcb;
+}
+button[type="submit"]:not(.danger), .app-header nav a:first-child, .app-header nav button.is-active {
+  color: #fff;
+  background: #292b2d;
+  border-color: #292b2d;
+  box-shadow: none;
+}
+.theme-toggle { display: none !important; }
+
+@media (max-width: 880px) {
+  .app-shell { grid-template-columns: 1fr; gap: 10px; padding: 10px; }
+  .sidebar {
+    position: sticky;
+    z-index: 40;
+    top: 0;
+    display: flex;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 12px;
+  }
+  .brand { width: auto; flex: 0 0 auto; padding: 4px; border: 0; background: transparent; }
+  .brand::after { display: none; }
+  .brand-mark { width: 34px; height: 34px; flex-basis: 34px; }
+  .sidebar-tabs { flex: 1 1 auto; width: auto; flex-direction: row; align-items: center; justify-content: flex-start; overflow-x: auto; }
+  .sidebar-tabs a { width: 40px; flex: 0 0 40px; justify-content: center; padding: 0; }
+  .sidebar-tabs a::after { display: none; }
+  .sidebar-exit { width: 42px; min-width: 42px; height: 40px; padding: 0; font-size: 0; text-align: center; }
+  .sidebar-exit::before { content: "↪"; font-size: 1rem; }
+  .workspace { padding: 0 2px 16px; }
+  .topbar { min-height: 44px; margin-bottom: 16px; overflow-x: auto; }
+}
+@media (max-width: 560px) {
+  .topbar-nav { width: max-content; }
+  .topbar-nav a { padding: 7px 9px; font-size: .7rem; }
+}
