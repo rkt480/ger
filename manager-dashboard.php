@@ -164,7 +164,7 @@ $clientMonitorStatus = static function (array $client): string {
     <meta name="theme-color" content="#070a10" />
     <title>Monitoramento | Gerente</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261104-monitoring-orb-spin-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261104-monitoring-radar-v2" />
   </head>
   <body class="settings-page manager-monitor-page" data-manager-feed-version="<?= htmlspecialchars($managerFeedVersion) ?>" data-manager-user-key="<?= htmlspecialchars($managerUserKey) ?>">
     <div class="app-shell">
@@ -232,7 +232,11 @@ $clientMonitorStatus = static function (array $client): string {
               <p class="manager-date" data-manager-date>Carregando data local…</p>
             </div>
             <aside class="manager-status-widget">
-              <div class="manager-status-orb" aria-hidden="true"><span>✦</span></div>
+              <div class="manager-status-radar" aria-hidden="true">
+                <span class="manager-radar-contact is-near"></span>
+                <span class="manager-radar-contact is-far"></span>
+                <span class="manager-radar-center"></span>
+              </div>
               <p class="manager-widget-kicker">Status da operação</p>
               <strong><?= $stats['priority_alerts'] > 0 ? 'Atenção necessária' : 'Monitoramento ativo' ?></strong>
               <span><?= $stats['open_alerts'] ?> alerta<?= $stats['open_alerts'] === 1 ? '' : 's' ?> aberto<?= $stats['open_alerts'] === 1 ? '' : 's' ?></span>

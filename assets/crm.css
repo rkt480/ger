@@ -7621,26 +7621,82 @@ option {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
-.manager-status-orb {
+.manager-status-radar {
+  position: relative;
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 56px;
+  height: 56px;
   place-items: center;
   margin-bottom: 5px;
-  color: #c4ceff;
-  background: radial-gradient(circle at 35% 30%, #c7d0ff, #566bb9 56%, #1b2446 100%);
-  border: 1px solid rgba(201, 211, 255, 0.4);
+  overflow: hidden;
+  background:
+    linear-gradient(to right, transparent calc(50% - .5px), rgba(172, 202, 255, .2) 50%, transparent calc(50% + .5px)),
+    linear-gradient(to bottom, transparent calc(50% - .5px), rgba(172, 202, 255, .2) 50%, transparent calc(50% + .5px)),
+    radial-gradient(circle, transparent 0 18%, rgba(172, 202, 255, .44) 19% 20%, transparent 21% 42%, rgba(172, 202, 255, .38) 43% 44%, transparent 45% 67%, rgba(172, 202, 255, .3) 68% 69%, transparent 70%),
+    radial-gradient(circle at 35% 30%, #6a81c9, #293d79 64%, #101b3c 100%);
+  border: 1px solid rgba(201, 211, 255, 0.5);
   border-radius: 50%;
-  box-shadow: 0 0 24px rgba(112, 134, 239, 0.32);
-  animation: manager-status-orb-spin 7s linear infinite;
+  box-shadow: 0 0 24px rgba(83, 129, 235, 0.28), inset 0 0 12px rgba(176, 204, 255, .14);
 }
 
-@keyframes manager-status-orb-spin {
+.manager-status-radar::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(from 0deg, transparent 0 300deg, rgba(130, 179, 255, .04) 320deg, rgba(130, 179, 255, .28) 348deg, rgba(196, 224, 255, .9) 360deg);
+  content: "";
+  animation: manager-radar-sweep 4s linear infinite;
+}
+
+.manager-radar-contact,
+.manager-radar-center {
+  position: absolute;
+  z-index: 2;
+  display: block;
+  width: 4px;
+  height: 4px;
+  background: #e3f2ff;
+  border-radius: 50%;
+  box-shadow: 0 0 7px 2px rgba(129, 205, 255, .78);
+}
+
+.manager-radar-contact.is-near {
+  top: 30%;
+  left: 64%;
+  animation: manager-radar-contact-pulse 2.4s ease-in-out infinite;
+}
+
+.manager-radar-contact.is-far {
+  top: 67%;
+  left: 36%;
+  width: 3px;
+  height: 3px;
+  opacity: .72;
+  animation: manager-radar-contact-pulse 2.4s ease-in-out 1.1s infinite;
+}
+
+.manager-radar-center {
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  transform: translate(-50%, -50%);
+  background: #f5fbff;
+}
+
+@keyframes manager-radar-sweep {
   to { transform: rotate(360deg); }
 }
 
+@keyframes manager-radar-contact-pulse {
+  0%, 100% { opacity: .42; }
+  45% { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .manager-status-orb { animation: none; }
+  .manager-status-radar::after,
+  .manager-radar-contact { animation: none; }
 }
 
 .manager-widget-kicker {
@@ -7657,7 +7713,7 @@ option {
   font-size: 0.98rem;
 }
 
-.manager-status-widget > span:not(.manager-status-orb) {
+.manager-status-widget > span {
   color: #8996aa;
   font-size: 0.72rem;
 }
@@ -9661,7 +9717,7 @@ dt,
 .lead-card p,
 .push-onboarding,
 .manager-date,
-.manager-status-widget > span:not(.manager-status-orb) {
+.manager-status-widget > span {
   letter-spacing: -0.008em;
 }
 
@@ -9954,7 +10010,7 @@ html[data-theme="light"] .manager-status-widget {
 }
 
 html[data-theme="light"] .manager-widget-kicker,
-html[data-theme="light"] .manager-status-widget > span:not(.manager-status-orb) {
+html[data-theme="light"] .manager-status-widget > span {
   color: #64748b;
 }
 
