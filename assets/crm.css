@@ -8615,7 +8615,7 @@ html[data-theme="light"] .manager-delivery-card strong {
   grid-column: 1;
 }
 
-.manager-client-grid[data-view-mode="list"] .manager-client-groups {
+.manager-client-grid[data-view-mode="list"] .manager-client-operations {
   grid-column: 2;
   grid-row: 1 / span 3;
   min-height: 100%;
@@ -9460,7 +9460,7 @@ html[data-theme="light"] .manager-delivery-card strong {
     display: block;
   }
 
-  .manager-client-grid[data-view-mode="list"] .manager-client-groups {
+  .manager-client-grid[data-view-mode="list"] .manager-client-operations {
     min-height: 0;
     padding-left: 0;
     border-left: 0;
@@ -10485,6 +10485,180 @@ html[data-theme="light"] .manager-alert-resolution-note {
   background: rgba(105, 124, 210, 0.32);
 }
 
+.manager-client-operations {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 10px;
+  background: rgba(13, 20, 31, 0.32);
+  border: 1px solid rgba(154, 169, 197, 0.13);
+  border-radius: 12px;
+}
+
+.manager-client-operations-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.manager-client-operations-header .manager-card-label {
+  margin: 0;
+}
+
+.manager-client-operations-header > span,
+.manager-operations-empty,
+.manager-client-operation time,
+.manager-operation-count {
+  color: #8996aa;
+  font-size: 0.59rem;
+}
+
+.manager-client-operational-list {
+  display: grid;
+  gap: 6px;
+}
+
+.manager-client-operation {
+  min-width: 0;
+  overflow: hidden;
+  background: rgba(18, 27, 41, 0.46);
+  border: 1px solid rgba(154, 169, 197, 0.12);
+  border-radius: 9px;
+}
+
+.manager-client-operation > summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.manager-client-operation > summary::marker,
+.manager-client-operation > summary::-webkit-details-marker {
+  display: none;
+  content: "";
+}
+
+.manager-client-operation > summary:hover,
+.manager-client-operation[open] > summary {
+  background: rgba(105, 124, 210, 0.08);
+}
+
+.manager-operation-type {
+  overflow: hidden;
+  color: #aebaff;
+  font-size: 0.55rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manager-operation-type.is-critical,
+.manager-operation-type.is-high {
+  color: #ff9eac;
+}
+
+.manager-operation-type.is-medium,
+.manager-operation-type.is-low {
+  color: #efc476;
+}
+
+.manager-client-operation > summary strong {
+  overflow: hidden;
+  color: #dce5f4;
+  font-size: 0.61rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manager-client-operation time,
+.manager-operation-count {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.manager-client-operation-content {
+  display: grid;
+  gap: 7px;
+  padding: 0 9px 9px;
+}
+
+.manager-client-operation-content > p,
+.manager-client-operation-content li {
+  margin: 0;
+  color: #aab5c8;
+  font-size: 0.62rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.manager-client-operation-content > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(154, 169, 197, 0.1);
+}
+
+.manager-client-operation-content > footer > span {
+  color: #8996aa;
+  font-size: 0.56rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.manager-client-operation-content .manager-alert-resolve-button {
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 5px 9px;
+  font-size: 0.58rem;
+}
+
+.manager-operation-evidence {
+  color: #aebaff;
+  font-size: 0.59rem;
+}
+
+.manager-operation-evidence > summary {
+  cursor: pointer;
+}
+
+.manager-operation-evidence blockquote {
+  margin: 5px 0 0;
+  color: #aab5c8;
+  white-space: pre-line;
+}
+
+.manager-operation-evidence ul,
+.manager-operation-highlights {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 17px;
+}
+
+.manager-operation-evidence li strong,
+.manager-operation-evidence li span,
+.manager-operation-evidence li small {
+  display: block;
+}
+
+.manager-operations-empty {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.manager-client-operations .manager-client-groups {
+  padding-top: 2px;
+  border-top: 1px solid rgba(154, 169, 197, 0.1);
+}
+
 html[data-theme="light"] .manager-campaign-report-card {
   background: linear-gradient(145deg, #fff, #f4f7fb);
   border-color: rgba(124, 139, 161, 0.18);
@@ -10533,6 +10707,39 @@ html[data-theme="light"] .manager-ads-client-status > span.is-success {
 
 html[data-theme="light"] .manager-ads-client-status > span.is-error {
   color: #c0344d;
+}
+
+html[data-theme="light"] .manager-client-operations {
+  background: rgba(241, 246, 252, 0.75);
+  border-color: rgba(124, 139, 161, 0.16);
+}
+
+html[data-theme="light"] .manager-client-operations-header > span,
+html[data-theme="light"] .manager-operations-empty,
+html[data-theme="light"] .manager-client-operation time,
+html[data-theme="light"] .manager-operation-count,
+html[data-theme="light"] .manager-client-operation-content > footer > span {
+  color: #64748b;
+}
+
+html[data-theme="light"] .manager-client-operation {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(124, 139, 161, 0.16);
+}
+
+html[data-theme="light"] .manager-client-operation > summary strong {
+  color: #1d2a3e;
+}
+
+html[data-theme="light"] .manager-client-operation-content > p,
+html[data-theme="light"] .manager-client-operation-content li,
+html[data-theme="light"] .manager-operation-evidence blockquote {
+  color: #58677d;
+}
+
+html[data-theme="light"] .manager-client-operation-content > footer,
+html[data-theme="light"] .manager-client-operations .manager-client-groups {
+  border-color: rgba(124, 139, 161, 0.16);
 }
 
 html[data-theme="light"] .manager-campaign-alert-list .manager-alert-item details summary {

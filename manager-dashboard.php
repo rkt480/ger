@@ -28,14 +28,23 @@ $campaignAlerts = $adsMonitor['alerts'];
 $campaignReports = $adsMonitor['reports'];
 $adsSyncs = $adsMonitor['syncs'];
 $adsDeliveries = $adsMonitor['deliveries'] ?? [];
-$reportsByClient = [];
+$campaignAlertsByClient = [];
+$campaignReportsByClient = [];
 $syncByClient = [];
+
+foreach ($campaignAlerts as $campaignAlert) {
+    $alertClientId = (int) ($campaignAlert['client_id'] ?? 0);
+
+    if ($alertClientId > 0) {
+        $campaignAlertsByClient[$alertClientId][] = $campaignAlert;
+    }
+}
 
 foreach ($campaignReports as $campaignReport) {
     $reportClientId = (int) ($campaignReport['client_id'] ?? 0);
 
-    if ($reportClientId > 0 && !isset($reportsByClient[$reportClientId])) {
-        $reportsByClient[$reportClientId] = $campaignReport;
+    if ($reportClientId > 0) {
+        $campaignReportsByClient[$reportClientId][] = $campaignReport;
     }
 }
 
@@ -164,7 +173,7 @@ $clientMonitorStatus = static function (array $client): string {
     <meta name="theme-color" content="#070a10" />
     <title>Monitoramento | Gerente</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261104-monitoring-radar-v2" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261104-wallet-operations-v3" />
   </head>
   <body class="settings-page manager-monitor-page" data-manager-feed-version="<?= htmlspecialchars($managerFeedVersion) ?>" data-manager-user-key="<?= htmlspecialchars($managerUserKey) ?>">
     <div class="app-shell">
@@ -372,105 +381,16 @@ $clientMonitorStatus = static function (array $client): string {
               <article class="manager-delivery-card">
                 <span class="manager-delivery-status">Automatizado</span>
                 <h3>Relatório automático</h3>
-                <p>Sincroniza Meta Ads e Google Ads e gera resumos com IA. No card de cada cliente, programe o envio diário, semanal ou mensal do relatório ao gestor vinculado.</p>
-                <?php if ($isAdmin): ?><a href="settings.php#manager-ads-config">Configurar APIs e prompt</a><?php else: ?><strong>Relatórios recentes aparecem abaixo.</strong><?php endif; ?>
+                <p>Sincroniza Meta Ads e Google Ads e gera resumos com IA, exibidos nas mensagens operacionais de cada carteira. Programe o envio diário, semanal ou mensal ao gestor vinculado no card do cliente.</p>
+                <?php if ($isAdmin): ?><a href="settings.php#manager-ads-config">Configurar APIs e prompt</a><?php else: ?><strong>Relatórios recentes aparecem na carteira do cliente.</strong><?php endif; ?>
               </article>
               <article class="manager-delivery-card is-ready">
                 <span class="manager-delivery-status">Painel + WhatsApp</span>
                 <h3>Alertas de campanha</h3>
-                <p>As recomendações e alertas ficam no painel. A IA só envia WhatsApp ao gestor atribuído quando o prompt pedir essa ação.</p>
+                <p>Alertas e recomendações ficam nas mensagens operacionais de cada carteira. A IA só envia WhatsApp ao gestor atribuído quando o prompt pedir essa ação.</p>
                 <?php if ($isAdmin): ?><a href="settings.php#manager-ads-config">Editar regras do agente</a><br /><a href="commercial.php?tab=usuarios&amp;role=gestor">Cadastrar WhatsApp dos gestores</a><?php else: ?><strong>Notificações dependem das regras configuradas pelo administrador.</strong><?php endif; ?>
               </article>
             </div>
-          </section>
-
-          <section class="manager-campaign-alerts-section" id="manager-campaign-alerts">
-            <header class="settings-group-header">
-              <div>
-                <p class="eyebrow">Análise de campanhas</p>
-                <h2>Alertas em aberto</h2>
-              </div>
-              <span class="manager-section-count"><?= count($campaignAlerts) ?> alerta<?= count($campaignAlerts) === 1 ? '' : 's' ?></span>
-            </header>
-            <?php if ($campaignAlerts === []): ?>
-              <article class="manager-inline-empty">Nenhum alerta de campanha em aberto. Depois que as contas forem conectadas, a IA registrará aqui os pontos que precisarem de acompanhamento.</article>
-            <?php else: ?>
-              <div class="manager-alert-list manager-campaign-alert-list">
-                <?php foreach ($campaignAlerts as $alert): ?>
-                  <?php
-                    $evidenceText = trim((string) ($alert['evidence'] ?? ''));
-                    $actionType = (string) ($alert['action_type'] ?? 'suggestion');
-                    $actionLabel = $actionType === 'manager_follow_up' ? 'Cobrança definida pelo agente' : ($actionType === 'notify_manager' ? 'Notificar gestor' : 'Sugestão');
-                    $severityLabel = strtoupper((string) ($alert['severity'] ?? 'medium'));
-                  ?>
-                  <article class="manager-alert-item is-<?= htmlspecialchars((string) ($alert['severity'] ?? 'medium')) ?>">
-                    <header><span><?= htmlspecialchars($severityLabel) ?> · <?= htmlspecialchars($actionLabel) ?></span><time><?= htmlspecialchars($formatDate($alert['created_at'] ?? '')) ?></time></header>
-                    <h3><?= htmlspecialchars((string) ($alert['client_name'] ?? 'Cliente')) ?> — <?= htmlspecialchars((string) ($alert['title'] ?? 'Alerta de campanha')) ?></h3>
-                    <p><?= nl2br(htmlspecialchars((string) ($alert['description'] ?? ''))) ?></p>
-                    <?php if ($evidenceText !== ''): ?><details><summary>Evidências da análise</summary><blockquote><?= nl2br(htmlspecialchars($evidenceText)) ?></blockquote></details><?php endif; ?>
-                    <div class="manager-alert-item-footer">
-                      <?php
-                        $whatsAppStatus = (int) ($alert['notify_whatsapp'] ?? 0) !== 1
-                          ? 'desativado pelo agente'
-                          : (trim((string) ($alert['whatsapp_sent_at'] ?? '')) !== ''
-                            ? 'enviado ' . $formatDate($alert['whatsapp_sent_at'])
-                            : 'pendente: ' . (trim((string) ($alert['whatsapp_error'] ?? '')) ?: 'aguardando envio'));
-                      ?>
-                      <small>Gestor: <?= htmlspecialchars(trim((string) ($alert['manager_name'] ?? '')) ?: 'não atribuído') ?> · WhatsApp <?= htmlspecialchars($whatsAppStatus) ?></small>
-                      <button type="button" class="manager-alert-resolve-button" data-manager-resolve-alert data-manager-alert-kind="campaign" data-alert-id="<?= (int) $alert['id'] ?>">Resolver</button>
-                    </div>
-                  </article>
-                <?php endforeach; ?>
-              </div>
-            <?php endif; ?>
-          </section>
-
-          <section class="manager-campaign-reports-section" id="manager-campaign-reports">
-            <header class="settings-group-header">
-              <div>
-                <p class="eyebrow">Relatórios gerados</p>
-                <h2>Desempenho de campanhas</h2>
-              </div>
-              <span class="manager-section-count"><?= count($campaignReports) ?> relatório<?= count($campaignReports) === 1 ? '' : 's' ?></span>
-            </header>
-            <?php if ($campaignReports === []): ?>
-              <article class="manager-inline-empty">Os relatórios por cliente aparecerão aqui após a primeira sincronização. Configure as credenciais globais em Configurações e os IDs nas contas de cada cliente.</article>
-            <?php else: ?>
-              <div class="manager-campaign-report-grid">
-                <?php foreach (array_slice($campaignReports, 0, 12) as $report): ?>
-                  <?php
-                    $reportHighlights = json_decode((string) ($report['highlights_json'] ?? '[]'), true);
-                    $reportCampaigns = json_decode((string) ($report['metrics_json'] ?? '[]'), true);
-                    $reportHighlights = is_array($reportHighlights) ? $reportHighlights : [];
-                    $reportCampaigns = is_array($reportCampaigns) ? $reportCampaigns : [];
-                    $reportAlerts = json_decode((string) ($report['alerts_json'] ?? '[]'), true);
-                    $reportAlerts = is_array($reportAlerts) ? $reportAlerts : [];
-                  ?>
-                  <article class="manager-campaign-report-card">
-                    <header><div><span><?= htmlspecialchars((string) ($report['client_name'] ?? 'Cliente')) ?></span><small><?= htmlspecialchars($formatPeriod($report['date_from'] ?? '', $report['date_to'] ?? '')) ?></small></div><b><?= count($reportAlerts) ?> alerta<?= count($reportAlerts) === 1 ? '' : 's' ?></b></header>
-                    <p><?= nl2br(htmlspecialchars((string) ($report['report_summary'] ?? ''))) ?></p>
-                    <?php if ($reportHighlights !== []): ?><ul><?php foreach (array_slice($reportHighlights, 0, 4) as $highlight): ?><li><?= htmlspecialchars((string) $highlight) ?></li><?php endforeach; ?></ul><?php endif; ?>
-                    <?php if ($reportCampaigns !== []): ?>
-                      <details class="manager-campaign-report-metrics">
-                        <summary>Ver métricas das campanhas</summary>
-                        <ul>
-                          <?php foreach (array_slice($reportCampaigns, 0, 8) as $campaignMetric): ?>
-                            <?php if (!is_array($campaignMetric)) { continue; } ?>
-                            <?php $currencyCode = trim((string) ($campaignMetric['currency'] ?? '')); ?>
-                            <li>
-                              <strong><?= htmlspecialchars((string) ($campaignMetric['campaign_name'] ?? 'Campanha')) ?></strong>
-                              <span><?= htmlspecialchars(strtoupper((string) ($campaignMetric['platform'] ?? ''))) ?> · <?= (int) ($campaignMetric['impressions'] ?? 0) ?> impressões · <?= (int) ($campaignMetric['clicks'] ?? 0) ?> cliques · CTR <?= htmlspecialchars($formatMetricNumber($campaignMetric['ctr'] ?? null, 2)) ?>%</span>
-                              <small>Investimento: <?= htmlspecialchars($formatMetricNumber($campaignMetric['spend'] ?? null, 2)) ?><?= $currencyCode !== '' ? ' ' . htmlspecialchars($currencyCode) : '' ?> · Conversões: <?= htmlspecialchars($formatMetricNumber($campaignMetric['conversions'] ?? null, 2)) ?></small>
-                            </li>
-                          <?php endforeach; ?>
-                        </ul>
-                      </details>
-                    <?php endif; ?>
-                    <footer><?= count($reportCampaigns) ?> campanhas · atualizado <?= htmlspecialchars($formatDate($report['updated_at'] ?? '')) ?></footer>
-                  </article>
-                <?php endforeach; ?>
-              </div>
-            <?php endif; ?>
           </section>
 
           <section class="manager-client-section">
@@ -503,9 +423,10 @@ $clientMonitorStatus = static function (array $client): string {
                   <?php
                     $clientId = (int) ($client['id'] ?? 0);
                     $clientGroups = $groupsByClient[$clientId] ?? [];
+                    $clientCampaignAlerts = $campaignAlertsByClient[$clientId] ?? [];
+                    $clientCampaignReports = array_slice($campaignReportsByClient[$clientId] ?? [], 0, 4);
                     $clientStatus = $clientMonitorStatus($client);
                     $clientSync = $syncByClient[$clientId] ?? null;
-                    $clientReport = $reportsByClient[$clientId] ?? null;
                     $clientDelivery = $adsDeliveries[$clientId] ?? null;
                   ?>
                   <article class="manager-client-card is-<?= htmlspecialchars($clientStatus) ?>">
@@ -634,12 +555,79 @@ $clientMonitorStatus = static function (array $client): string {
                           <button type="submit">Atualizar e gerar relatório</button>
                         </form>
                       <?php endif; ?>
-                      <?php if (is_array($clientReport)): ?>
-                        <a href="#manager-campaign-reports">Relatório: <?= htmlspecialchars($formatPeriod($clientReport['date_from'] ?? '', $clientReport['date_to'] ?? '')) ?></a>
-                      <?php endif; ?>
                     </div>
-                    <div class="manager-client-groups">
-                      <div class="manager-card-label">Grupos do cliente</div>
+                    <section class="manager-client-operations" aria-label="Mensagens operacionais de <?= htmlspecialchars((string) $client['name']) ?>">
+                      <header class="manager-client-operations-header">
+                        <div class="manager-card-label">Mensagens operacionais</div>
+                        <span><?= count($clientCampaignAlerts) ?> alerta<?= count($clientCampaignAlerts) === 1 ? '' : 's' ?> · <?= count($campaignReportsByClient[$clientId] ?? []) ?> relatório<?= count($campaignReportsByClient[$clientId] ?? []) === 1 ? '' : 's' ?></span>
+                      </header>
+                      <?php if ($clientCampaignAlerts !== [] || $clientCampaignReports !== []): ?>
+                        <div class="manager-client-operational-list">
+                          <?php foreach ($clientCampaignAlerts as $alert): ?>
+                            <?php
+                              $evidenceText = trim((string) ($alert['evidence'] ?? ''));
+                              $severity = (string) ($alert['severity'] ?? 'medium');
+                              $actionType = (string) ($alert['action_type'] ?? 'suggestion');
+                              $actionLabel = $actionType === 'manager_follow_up' ? 'Ação para o gestor' : ($actionType === 'notify_manager' ? 'Notificar gestor' : 'Sugestão');
+                              $whatsAppStatus = (int) ($alert['notify_whatsapp'] ?? 0) !== 1
+                                ? 'WhatsApp desativado pelo agente'
+                                : (trim((string) ($alert['whatsapp_sent_at'] ?? '')) !== ''
+                                  ? 'WhatsApp enviado ' . $formatDate($alert['whatsapp_sent_at'])
+                                  : 'WhatsApp pendente: ' . (trim((string) ($alert['whatsapp_error'] ?? '')) ?: 'aguardando envio'));
+                            ?>
+                            <details class="manager-client-operation is-alert">
+                              <summary>
+                                <span class="manager-operation-type is-<?= htmlspecialchars($severity) ?>">Alerta · <?= htmlspecialchars(strtoupper($severity)) ?></span>
+                                <strong><?= htmlspecialchars((string) ($alert['title'] ?? 'Alerta de campanha')) ?></strong>
+                                <time><?= htmlspecialchars($formatDate($alert['created_at'] ?? '')) ?></time>
+                              </summary>
+                              <div class="manager-client-operation-content">
+                                <p><?= nl2br(htmlspecialchars((string) ($alert['description'] ?? ''))) ?></p>
+                                <?php if ($evidenceText !== ''): ?><details class="manager-operation-evidence"><summary>Evidências da análise</summary><blockquote><?= nl2br(htmlspecialchars($evidenceText)) ?></blockquote></details><?php endif; ?>
+                                <footer>
+                                  <span><?= htmlspecialchars($actionLabel) ?> · Gestor: <?= htmlspecialchars(trim((string) ($alert['manager_name'] ?? '')) ?: 'não atribuído') ?> · <?= htmlspecialchars($whatsAppStatus) ?></span>
+                                  <button type="button" class="manager-alert-resolve-button" data-manager-resolve-alert data-manager-alert-kind="campaign" data-alert-id="<?= (int) $alert['id'] ?>">Resolver</button>
+                                </footer>
+                              </div>
+                            </details>
+                          <?php endforeach; ?>
+                          <?php foreach ($clientCampaignReports as $report): ?>
+                            <?php
+                              $reportHighlights = json_decode((string) ($report['highlights_json'] ?? '[]'), true);
+                              $reportCampaigns = json_decode((string) ($report['metrics_json'] ?? '[]'), true);
+                              $reportAlerts = json_decode((string) ($report['alerts_json'] ?? '[]'), true);
+                              $reportHighlights = is_array($reportHighlights) ? $reportHighlights : [];
+                              $reportCampaigns = is_array($reportCampaigns) ? $reportCampaigns : [];
+                              $reportAlerts = is_array($reportAlerts) ? $reportAlerts : [];
+                            ?>
+                            <details class="manager-client-operation is-report">
+                              <summary>
+                                <span class="manager-operation-type">Desempenho</span>
+                                <strong><?= htmlspecialchars($formatPeriod($report['date_from'] ?? '', $report['date_to'] ?? '')) ?></strong>
+                                <span class="manager-operation-count"><?= count($reportAlerts) ?> alerta<?= count($reportAlerts) === 1 ? '' : 's' ?> · <?= count($reportCampaigns) ?> campanhas</span>
+                              </summary>
+                              <div class="manager-client-operation-content">
+                                <p><?= nl2br(htmlspecialchars((string) ($report['report_summary'] ?? ''))) ?></p>
+                                <?php if ($reportHighlights !== []): ?><ul class="manager-operation-highlights"><?php foreach (array_slice($reportHighlights, 0, 4) as $highlight): ?><li><?= htmlspecialchars((string) $highlight) ?></li><?php endforeach; ?></ul><?php endif; ?>
+                                <?php if ($reportCampaigns !== []): ?>
+                                  <details class="manager-operation-evidence">
+                                    <summary>Ver métricas das campanhas</summary>
+                                    <ul><?php foreach (array_slice($reportCampaigns, 0, 8) as $campaignMetric): ?><?php if (!is_array($campaignMetric)) { continue; } ?><?php $currencyCode = trim((string) ($campaignMetric['currency'] ?? '')); ?><li><strong><?= htmlspecialchars((string) ($campaignMetric['campaign_name'] ?? 'Campanha')) ?></strong><span><?= htmlspecialchars(strtoupper((string) ($campaignMetric['platform'] ?? ''))) ?> · <?= (int) ($campaignMetric['impressions'] ?? 0) ?> impressões · <?= (int) ($campaignMetric['clicks'] ?? 0) ?> cliques · CTR <?= htmlspecialchars($formatMetricNumber($campaignMetric['ctr'] ?? null, 2)) ?>%</span><small>Investimento: <?= htmlspecialchars($formatMetricNumber($campaignMetric['spend'] ?? null, 2)) ?><?= $currencyCode !== '' ? ' ' . htmlspecialchars($currencyCode) : '' ?> · Conversões: <?= htmlspecialchars($formatMetricNumber($campaignMetric['conversions'] ?? null, 2)) ?></small></li><?php endforeach; ?></ul>
+                                  </details>
+                                <?php endif; ?>
+                                <footer><span><?= count($reportCampaigns) ?> campanhas · atualizado <?= htmlspecialchars($formatDate($report['updated_at'] ?? '')) ?></span></footer>
+                              </div>
+                            </details>
+                          <?php endforeach; ?>
+                        </div>
+                        <?php if (count($campaignReportsByClient[$clientId] ?? []) > count($clientCampaignReports)): ?>
+                          <p class="manager-operations-empty">Exibindo os <?= count($clientCampaignReports) ?> relatórios mais recentes.</p>
+                        <?php endif; ?>
+                      <?php else: ?>
+                        <p class="manager-operations-empty">Nenhum alerta ou relatório de campanha para este cliente.</p>
+                      <?php endif; ?>
+                      <div class="manager-client-groups">
+                      <div class="manager-card-label">Grupos monitorados</div>
                       <?php if ($clientGroups === []): ?>
                         <p class="manager-no-groups">Nenhum grupo vinculado.</p>
                       <?php else: ?>
@@ -669,7 +657,8 @@ $clientMonitorStatus = static function (array $client): string {
                           </div>
                         <?php endforeach; ?>
                       <?php endif; ?>
-                    </div>
+                      </div>
+                    </section>
                   </article>
                 <?php endforeach; ?>
               </div>
