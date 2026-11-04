@@ -7632,6 +7632,15 @@ option {
   border: 1px solid rgba(201, 211, 255, 0.4);
   border-radius: 50%;
   box-shadow: 0 0 24px rgba(112, 134, 239, 0.32);
+  animation: manager-status-orb-spin 7s linear infinite;
+}
+
+@keyframes manager-status-orb-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manager-status-orb { animation: none; }
 }
 
 .manager-widget-kicker {
@@ -8210,24 +8219,31 @@ html[data-theme="light"] .manager-delivery-card strong {
 
 .manager-client-menu {
   position: relative;
+  justify-self: end;
   align-self: start;
+  width: 34px;
   color: #6f7d93;
   font-size: 0.85rem;
   letter-spacing: 0.08em;
 }
 
 .manager-client-menu > summary {
-  display: grid;
-  min-width: 34px;
-  min-height: 30px;
-  place-items: center;
+  display: flex;
+  width: 34px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border-radius: 8px;
   cursor: pointer;
   list-style: none;
+  user-select: none;
 }
 
+.manager-client-menu > summary::marker,
 .manager-client-menu > summary::-webkit-details-marker {
   display: none;
+  content: "";
 }
 
 .manager-client-menu > summary:hover,
@@ -8243,33 +8259,49 @@ html[data-theme="light"] .manager-delivery-card strong {
   z-index: 20;
   top: calc(100% + 5px);
   right: 0;
-  min-width: 160px;
+  min-width: 184px;
   margin: 0;
-  padding: 5px;
-  background: var(--surface, #fff);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 14px 32px rgba(24, 39, 75, 0.16), 0 2px 6px rgba(24, 39, 75, 0.06);
 }
 
 .manager-client-menu form button {
+  display: flex;
   width: 100%;
-  min-height: 36px;
-  padding: 8px 10px;
-  color: #b42332;
+  min-height: 40px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 9px 11px;
+  color: #c03442;
   text-align: left;
   background: transparent;
   border: 0;
-  border-radius: 7px;
+  border-radius: 8px;
   box-shadow: none;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.82rem;
+  font-weight: 650;
   cursor: pointer;
+}
+
+.manager-client-menu form button svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
 }
 
 .manager-client-menu form button:hover,
 .manager-client-menu form button:focus-visible {
-  background: rgba(239, 68, 68, 0.1);
+  color: #a92534;
+  background: rgba(220, 53, 69, 0.08);
   outline: none;
 }
 
@@ -11472,21 +11504,28 @@ body:not(.auth-page)::before { display: none !important; }
 }
 .sidebar-tabs a.active svg { color: #262829; }
 .sidebar-exit {
+  display: flex;
   justify-self: stretch;
   width: 100%;
   height: 40px;
   min-height: 40px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
   padding: 0 12px;
-  color: #73777a;
-  background: transparent;
-  border: 1px solid transparent;
+  color: #5e6671;
+  background: #fff;
+  border: 1px solid #e2e2de;
   border-radius: 9px;
-  box-shadow: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .035);
   font-size: .78rem;
   text-align: left;
 }
 .sidebar-exit::before { content: none; }
-.sidebar-exit:hover { color: #292b2d; background: #e7e7e4; }
+.sidebar-exit svg { width: 17px; height: 17px; flex: 0 0 17px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+.sidebar-exit:hover,
+.sidebar-exit:focus-visible { color: #292b2d; background: #f7f7f5; border-color: #d4d4cf; outline: none; }
+.sidebar-exit:focus-visible { box-shadow: 0 0 0 3px rgba(37, 99, 235, .14); }
 .workspace { min-width: 0; padding: 0 2px 20px; }
 .topbar {
   min-height: 54px;
@@ -11570,8 +11609,10 @@ button[type="submit"]:not(.danger), .app-header nav a:first-child, .app-header n
   .sidebar-tabs { flex: 1 1 auto; width: auto; flex-direction: row; align-items: center; justify-content: flex-start; overflow-x: auto; }
   .sidebar-tabs a { width: 40px; flex: 0 0 40px; justify-content: center; padding: 0; }
   .sidebar-tabs a::after { display: none; }
-  .sidebar-exit { width: 42px; min-width: 42px; height: 40px; padding: 0; font-size: 0; text-align: center; }
-  .sidebar-exit::before { content: "↪"; font-size: 1rem; }
+  .sidebar-exit { width: 42px; min-width: 42px; height: 40px; justify-content: center; gap: 0; padding: 0; font-size: 0; text-align: center; }
+  .sidebar-exit span { display: none; }
+  .sidebar-exit svg { width: 18px; height: 18px; }
+  .sidebar-exit::before { content: none; }
   .workspace { padding: 0 2px 16px; }
   .topbar { min-height: 44px; margin-bottom: 16px; overflow-x: auto; }
 }

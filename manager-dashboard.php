@@ -164,7 +164,7 @@ $clientMonitorStatus = static function (array $client): string {
     <meta name="theme-color" content="#070a10" />
     <title>Monitoramento | Gerente</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261030-ux-contrast-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261104-monitoring-orb-spin-v1" />
   </head>
   <body class="settings-page manager-monitor-page" data-manager-feed-version="<?= htmlspecialchars($managerFeedVersion) ?>" data-manager-user-key="<?= htmlspecialchars($managerUserKey) ?>">
     <div class="app-shell">
@@ -184,11 +184,11 @@ $clientMonitorStatus = static function (array $client): string {
           </a>
           <?php if (crm_current_user_is_admin()): ?>
             <a href="settings.php" title="Configurações" aria-label="Configurações">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.8 1.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-2.6V20a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1-1.8-1.8.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H6v-2.6h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 1.8-1.8.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V5h2.6v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.8 1.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v2.6h-.2a1.7 1.7 0 0 0-1.6 1Z" /></svg>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.3 7.3 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42L9.18 5.3c-.59.24-1.14.56-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.64 8.82a.5.5 0 0 0 .12.64l2.03 1.58c-.05.31-.07.63-.07.96s.02.63.07.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.49.38 1.04.7 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.59-.24 1.14-.56 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58Z" /><circle cx="12" cy="12" r="3.25" /></svg>
             </a>
           <?php endif; ?>
         </nav>
-        <a class="sidebar-exit" href="logout.php" title="Sair">Sair</a>
+        <a class="sidebar-exit" href="logout.php" title="Sair"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></svg><span>Sair</span></a>
       </aside>
 
       <div class="workspace">
@@ -518,7 +518,7 @@ $clientMonitorStatus = static function (array $client): string {
                           <form method="post" action="delete-manager-client.php" onsubmit="return confirm('Excluir esta carteira? Os grupos serão desvinculados e os históricos preservados.');">
                             <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
                             <input type="hidden" name="client_id" value="<?= $clientId ?>" />
-                            <button type="submit" class="is-danger">Excluir carteira</button>
+                            <button type="submit" class="danger"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg><span>Excluir carteira</span></button>
                           </form>
                         </details>
                       <?php endif; ?>
