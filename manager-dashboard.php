@@ -363,36 +363,6 @@ $clientMonitorStatus = static function (array $client): string {
             <?php endif; ?>
           </section>
 
-          <section class="manager-delivery-section" aria-label="Automação gerencial">
-            <header class="settings-group-header">
-              <div>
-                <p class="eyebrow">Primeira entrega</p>
-                <h2>Acompanhamento, relatórios e campanhas</h2>
-              </div>
-              <?php if ($isAdmin): ?><a class="manager-delivery-settings" href="settings.php#manager-ads-config">Configurar integrações e agente</a><?php endif; ?>
-            </header>
-            <div class="manager-delivery-grid">
-              <article class="manager-delivery-card is-ready">
-                <span class="manager-delivery-status">Monitoramento atual</span>
-                <h3>Equipe, clientes e conversas</h3>
-                <p>Acompanhe gestores atribuídos, grupos de WhatsApp, análises de conversa e alertas operacionais no painel.</p>
-                <strong><?= count($activeManagers) ?> gestores cadastrados · <?= (int) $stats['open_alerts'] ?> alertas abertos</strong>
-              </article>
-              <article class="manager-delivery-card">
-                <span class="manager-delivery-status">Automatizado</span>
-                <h3>Relatório automático</h3>
-                <p>Sincroniza Meta Ads e Google Ads e gera resumos com IA, exibidos nas mensagens operacionais de cada carteira. Programe o envio diário, semanal ou mensal ao gestor vinculado no card do cliente.</p>
-                <?php if ($isAdmin): ?><a href="settings.php#manager-ads-config">Configurar APIs e prompt</a><?php else: ?><strong>Relatórios recentes aparecem na carteira do cliente.</strong><?php endif; ?>
-              </article>
-              <article class="manager-delivery-card is-ready">
-                <span class="manager-delivery-status">Painel + WhatsApp</span>
-                <h3>Alertas de campanha</h3>
-                <p>Alertas e recomendações ficam nas mensagens operacionais de cada carteira. A IA só envia WhatsApp ao gestor atribuído quando o prompt pedir essa ação.</p>
-                <?php if ($isAdmin): ?><a href="settings.php#manager-ads-config">Editar regras do agente</a><br /><a href="commercial.php?tab=usuarios&amp;role=gestor">Cadastrar WhatsApp dos gestores</a><?php else: ?><strong>Notificações dependem das regras configuradas pelo administrador.</strong><?php endif; ?>
-              </article>
-            </div>
-          </section>
-
           <section class="manager-client-section">
             <header class="settings-group-header">
               <div>
