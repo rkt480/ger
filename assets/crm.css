@@ -8085,7 +8085,7 @@ html[data-theme="light"] .manager-delivery-card strong {
 
 .manager-client-card {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   padding: 14px;
 }
 
@@ -8209,10 +8209,68 @@ html[data-theme="light"] .manager-delivery-card strong {
 }
 
 .manager-client-menu {
+  position: relative;
   align-self: start;
   color: #6f7d93;
   font-size: 0.85rem;
   letter-spacing: 0.08em;
+}
+
+.manager-client-menu > summary {
+  display: grid;
+  min-width: 34px;
+  min-height: 30px;
+  place-items: center;
+  border-radius: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.manager-client-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.manager-client-menu > summary:hover,
+.manager-client-menu[open] > summary,
+.manager-client-menu > summary:focus-visible {
+  color: var(--text);
+  background: rgba(105, 124, 210, 0.14);
+  outline: none;
+}
+
+.manager-client-menu form {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 5px);
+  right: 0;
+  min-width: 160px;
+  margin: 0;
+  padding: 5px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+}
+
+.manager-client-menu form button {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  color: #b42332;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  box-shadow: none;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.manager-client-menu form button:hover,
+.manager-client-menu form button:focus-visible {
+  background: rgba(239, 68, 68, 0.1);
+  outline: none;
 }
 
 .manager-client-kpis {

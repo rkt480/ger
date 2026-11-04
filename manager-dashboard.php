@@ -69,6 +69,7 @@ $flashMessages = [
     'ad_accounts' => 'Contas de anúncios do cliente salvas.',
     'ads_schedule' => 'Programação do relatório salva no cliente.',
     'ads_report' => 'Dados atualizados e relatório de campanhas gerado.',
+    'client_deleted' => 'Carteira excluída. Os grupos foram desvinculados e os históricos foram preservados.',
 ];
 $errorMessages = [
     'invalid_client' => 'Informe um nome válido para o cliente.',
@@ -83,6 +84,8 @@ $errorMessages = [
     'save_ad_accounts' => 'Não foi possível salvar as contas de anúncios agora.',
     'invalid_ads_schedule' => 'Revise a frequência, o dia e o horário da programação. Para ativá-la, vincule um gestor ao cliente.',
     'save_ads_schedule' => 'Não foi possível salvar a programação do relatório agora.',
+    'delete_client' => 'Não foi possível excluir a carteira agora.',
+    'delete_client_not_found' => 'Esta carteira não foi encontrada ou já foi excluída.',
     'ads_period' => 'O período selecionado não é válido para gerar o relatório.',
     'ads_sync' => 'Não foi possível concluir a atualização e o relatório. Confira as conexões de anúncios, os IDs das contas e a chave da OpenAI.',
 ];
@@ -509,7 +512,16 @@ $clientMonitorStatus = static function (array $client): string {
                         <h3><?= htmlspecialchars((string) $client['name']) ?></h3>
                         <span class="manager-client-manager">Gestor: <?= htmlspecialchars(trim((string) ($client['manager_name'] ?? '')) ?: 'Não definido') ?></span>
                       </div>
-                      <span class="manager-client-menu" aria-hidden="true">•••</span>
+                      <?php if ($isAdmin): ?>
+                        <details class="manager-client-menu">
+                          <summary aria-label="Opções da carteira <?= htmlspecialchars((string) $client['name']) ?>" title="Opções da carteira">•••</summary>
+                          <form method="post" action="delete-manager-client.php" onsubmit="return confirm('Excluir esta carteira? Os grupos serão desvinculados e os históricos preservados.');">
+                            <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
+                            <input type="hidden" name="client_id" value="<?= $clientId ?>" />
+                            <button type="submit" class="is-danger">Excluir carteira</button>
+                          </form>
+                        </details>
+                      <?php endif; ?>
                     </header>
                     <div class="manager-client-kpis">
                       <div><strong><?= (int) ($client['group_count'] ?? 0) ?></strong><span>grupos</span></div>

@@ -1576,6 +1576,45 @@ function crm_manager_monitor_create_client(PDO $pdo, string $name, string $exter
     return (int) $pdo->lastInsertId();
 }
 
+function crm_manager_monitor_delete_client(PDO $pdo, int $clientId): void
+{
+    crm_manager_monitor_ensure_schema($pdo);
+
+    if ($clientId <= 0) {
+        throw new InvalidArgumentException('Cliente inválido.');
+    }
+
+    try {
+        $pdo->beginTransaction();
+        $clientQuery = $pdo->prepare('SELECT id FROM manager_clients WHERE id = :id AND active = 1 LIMIT 1 FOR UPDATE');
+        $clientQuery->execute(['id' => $clientId]);
+
+        if ((int) $clientQuery->fetchColumn() <= 0) {
+            throw new InvalidArgumentException('Cliente não encontrado.');
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $deactivate = $pdo->prepare(
+            'UPDATE manager_clients
+             SET active = 0, ads_report_schedule_enabled = 0, updated_at = :updated_at
+             WHERE id = :id AND active = 1'
+        );
+        $deactivate->execute(['updated_at' => $now, 'id' => $clientId]);
+
+        $unlinkGroups = $pdo->prepare(
+            'UPDATE manager_groups SET client_id = NULL, updated_at = :updated_at WHERE client_id = :client_id'
+        );
+        $unlinkGroups->execute(['updated_at' => $now, 'client_id' => $clientId]);
+        $pdo->commit();
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        throw $error;
+    }
+}
+
 /**
  * Creates the client and assigns a first WhatsApp group as one atomic action.
  * The dashboard uses this path so a client can never be left half-created if
