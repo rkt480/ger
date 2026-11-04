@@ -173,14 +173,11 @@ $clientMonitorStatus = static function (array $client): string {
     <meta name="theme-color" content="#070a10" />
     <title>Monitoramento | Gerente</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261104-wallet-operations-v3" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261104-sidebar-standard-v1" />
   </head>
   <body class="settings-page manager-monitor-page" data-manager-feed-version="<?= htmlspecialchars($managerFeedVersion) ?>" data-manager-user-key="<?= htmlspecialchars($managerUserKey) ?>">
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegação do gerente">
-        <a class="brand" href="manager-dashboard.php" aria-label="Início">
-          <span class="brand-name">Gerencial</span>
-        </a>
         <nav class="sidebar-tabs" aria-label="Atalhos do gerente">
           <a class="active" href="manager-dashboard.php" title="Monitoramento" aria-label="Monitoramento">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v13H4z" /><path d="M7.5 9h9M7.5 12h6M7.5 15h3" /></svg>

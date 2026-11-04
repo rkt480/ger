@@ -5619,6 +5619,97 @@ textarea:focus {
   }
 }
 
+/* Shared sidebar finish: consistent brandless navigation and logout control. */
+body:not(.auth-page) .sidebar > .brand {
+  display: none !important;
+}
+
+body:not(.auth-page) .sidebar {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+body:not(.auth-page) .sidebar-exit {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 0 12px;
+  color: #5e6671;
+  background: #fff;
+  border: 1px solid #e2e2de;
+  border-radius: 9px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .035);
+  font-size: .78rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+body:not(.auth-page) .sidebar-exit::before {
+  content: none !important;
+}
+
+body:not(.auth-page) .sidebar-exit svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+body:not(.auth-page) .sidebar-exit:hover,
+body:not(.auth-page) .sidebar-exit:focus-visible {
+  color: #292b2d;
+  background: #f7f7f5;
+  border-color: #d4d4cf;
+  outline: none;
+}
+
+body:not(.auth-page) .sidebar-exit:focus-visible {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .14);
+}
+
+@media (max-width: 880px) {
+  body:not(.auth-page) .sidebar-exit {
+    width: 42px;
+    min-width: 42px;
+    height: 40px;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+    font-size: 0;
+  }
+
+  body:not(.auth-page) .sidebar-exit span {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .whatsapp-crm-page .sidebar {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: end;
+  }
+
+  .whatsapp-crm-page .sidebar .sidebar-exit {
+    grid-column: 1;
+    width: auto;
+    min-width: 64px;
+    padding: 0 12px;
+    font-size: .78rem;
+  }
+
+  .whatsapp-crm-page .sidebar .sidebar-exit span {
+    display: inline;
+  }
+}
+
 @media (max-width: 560px) {
   .whatsapp-crm-page .wa-chat-item {
     grid-template-columns: 44px minmax(0, 1fr) auto;
@@ -12124,5 +12215,25 @@ html[data-theme="light"] body:not(.auth-page) .manager-alert-item header span {
     margin: 0;
     padding: 0 12px;
     font-size: .78rem;
+  }
+}
+
+@media (max-width: 760px) {
+  body.whatsapp-crm-page:not(.auth-page) .sidebar {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 1fr;
+    justify-items: end;
+  }
+
+  body.whatsapp-crm-page:not(.auth-page) .sidebar .sidebar-exit {
+    grid-column: 1;
+    width: 42px;
+    min-width: 42px;
+    padding: 0;
+    font-size: 0;
+  }
+
+  body.whatsapp-crm-page:not(.auth-page) .sidebar .sidebar-exit span {
+    display: none;
   }
 }

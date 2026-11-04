@@ -115,14 +115,11 @@ $analysisStatusLabel = $pendingAnalysisCount > 0
     <meta name="theme-color" content="#070a10" />
     <title><?= htmlspecialchars($groupName) ?> | Monitoramento</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261030-ux-contrast-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261104-sidebar-standard-v1" />
   </head>
   <body class="settings-page manager-monitor-page manager-group-page">
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegação do gerente">
-        <a class="brand" href="manager-dashboard.php" aria-label="Início">
-          <span class="brand-name">Gerencial</span>
-        </a>
         <nav class="sidebar-tabs" aria-label="Atalhos do gerente">
           <a class="active" href="manager-dashboard.php" title="Monitoramento" aria-label="Monitoramento">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v13H4z" /><path d="M7.5 9h9M7.5 12h6M7.5 15h3" /></svg>
@@ -139,7 +136,7 @@ $analysisStatusLabel = $pendingAnalysisCount > 0
             </a>
           <?php endif; ?>
         </nav>
-        <a class="sidebar-exit" href="logout.php" title="Sair">Sair</a>
+        <a class="sidebar-exit" href="logout.php" title="Sair"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></svg><span>Sair</span></a>
       </aside>
 
       <div class="workspace">

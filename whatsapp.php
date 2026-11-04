@@ -1553,14 +1553,11 @@ if ($isWaConversationFragment) {
     <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken) ?>" />
     <title>WhatsApp | Gerencial</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261030-ux-contrast-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261104-sidebar-standard-v1" />
   </head>
   <body class="whatsapp-page whatsapp-crm-page" data-wa-initial-view="<?= is_array($activeLead) || is_array($activeGroup) ? 'thread' : 'inbox' ?>" data-wa-mobile-view="<?= is_array($activeLead) || is_array($activeGroup) ? 'thread' : 'inbox' ?>" data-wa-active-lead-id="<?= htmlspecialchars((string) ($activeLead['id'] ?? '')) ?>" data-wa-active-group-id="<?= is_array($activeGroup) ? (int) ($activeGroup['group_id'] ?? 0) : '' ?>" data-wa-incoming-signature="<?= htmlspecialchars(is_array($activeLead) ? crm_whatsapp_incoming_signature($activeLead) : '') ?>" data-wa-lead-feed-version="<?= htmlspecialchars($leadFeedVersion) ?>">
     <main class="wa-web-shell" aria-label="Atendimento WhatsApp do CRM">
       <aside class="sidebar" aria-label="Navegação do CRM">
-        <a class="brand" href="index.php" aria-label="Início" data-no-navigation-prefetch>
-          <span class="brand-name">Gerencial</span>
-        </a>
         <nav class="sidebar-tabs" aria-label="Atalhos do CRM">
           <a class="sidebar-kanban" href="index.php" title="Voltar para o Kanban" aria-label="Voltar para o Kanban" data-no-navigation-prefetch>
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1606,7 +1603,7 @@ if ($isWaConversationFragment) {
             </a>
           <?php endif; ?>
         </nav>
-        <a class="sidebar-exit" href="logout.php" title="Sair">Sair</a>
+        <a class="sidebar-exit" href="logout.php" title="Sair"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></svg><span>Sair</span></a>
       </aside>
 
       <nav class="wa-mobile-tabs" aria-label="Área do atendimento no celular">
