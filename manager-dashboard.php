@@ -175,7 +175,7 @@ $clientMonitorStatus = static function (array $client): string {
     <meta name="theme-color" content="#070a10" />
     <title>Monitoramento | Gerente</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261104-sidebar-standard-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261113-manager-test-controls-v1" />
   </head>
   <body class="settings-page manager-monitor-page" data-manager-feed-version="<?= htmlspecialchars($managerFeedVersion) ?>" data-manager-user-key="<?= htmlspecialchars($managerUserKey) ?>">
     <div class="app-shell">
@@ -492,26 +492,31 @@ $clientMonitorStatus = static function (array $client): string {
                         </form>
                       </details>
                       <?php if ($isAdmin): ?>
-                        <div class="manager-ad-test-send">
-                          <strong>Envio de teste</strong>
-                          <small>Usa o último relatório gerado e envia ao gestor vinculado. Não altera a programação nem o registro do envio automático.</small>
-                          <form method="post" action="manager-ads-test-send.php">
-                            <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
-                            <input type="hidden" name="client_id" value="<?= $clientId ?>" />
-                            <button type="submit" name="action" value="<?= !empty($client['ads_report_test_enabled']) ? 'disable' : 'enable' ?>"><?= !empty($client['ads_report_test_enabled']) ? 'Desativar testes' : 'Ativar testes' ?></button>
-                          </form>
-                          <?php if (!empty($client['ads_report_test_enabled'])): ?>
+                        <section class="manager-ad-test-send" aria-label="Envio de teste do relatório">
+                          <div class="manager-ad-test-heading">
+                            <strong>Envio de teste</strong>
+                            <span class="manager-ad-test-badge <?= !empty($client['ads_report_test_enabled']) ? 'is-active' : '' ?>"><?= !empty($client['ads_report_test_enabled']) ? 'Ativo' : 'Desativado' ?></span>
+                          </div>
+                          <p>Envie o último relatório gerado ao gestor. A programação automática continua como está.</p>
+                          <div class="manager-ad-test-actions">
                             <form method="post" action="manager-ads-test-send.php">
                               <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
                               <input type="hidden" name="client_id" value="<?= $clientId ?>" />
-                              <button type="submit" name="action" value="send">Enviar relatório de teste agora</button>
+                              <button class="manager-ad-test-toggle" type="submit" name="action" value="<?= !empty($client['ads_report_test_enabled']) ? 'disable' : 'enable' ?>"><?= !empty($client['ads_report_test_enabled']) ? 'Desativar testes' : 'Ativar testes' ?></button>
                             </form>
-                          <?php endif; ?>
+                            <?php if (!empty($client['ads_report_test_enabled'])): ?>
+                            <form method="post" action="manager-ads-test-send.php">
+                              <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
+                              <input type="hidden" name="client_id" value="<?= $clientId ?>" />
+                              <button class="manager-ad-test-primary" type="submit" name="action" value="send">Enviar teste agora</button>
+                            </form>
+                            <?php endif; ?>
+                          </div>
                           <?php if (is_array($adsTestFeedback) && (int) ($adsTestFeedback['client_id'] ?? 0) === $clientId): ?>
                             <?php $testMessages = ['enabled' => 'Testes ativados.', 'disabled' => 'Testes desativados.', 'sent' => 'Relatório de teste enviado ao gestor.', 'no_report' => 'Gere um relatório antes de testar o envio.', 'failed' => 'Falha no envio de teste. Confira o provedor de WhatsApp.', 'invalid' => 'Não foi possível executar o teste.']; ?>
-                            <?php if (isset($testMessages[(string) ($adsTestFeedback['status'] ?? '')])): ?><small role="status"><?= htmlspecialchars($testMessages[(string) $adsTestFeedback['status']]) ?><?= trim((string) ($adsTestFeedback['detail'] ?? '')) !== '' ? ' ' . htmlspecialchars((string) $adsTestFeedback['detail']) : '' ?></small><?php endif; ?>
+                            <?php if (isset($testMessages[(string) ($adsTestFeedback['status'] ?? '')])): ?><small class="manager-ad-test-feedback" role="status"><?= htmlspecialchars($testMessages[(string) $adsTestFeedback['status']]) ?><?= trim((string) ($adsTestFeedback['detail'] ?? '')) !== '' ? ' ' . htmlspecialchars((string) $adsTestFeedback['detail']) : '' ?></small><?php endif; ?>
                           <?php endif; ?>
-                        </div>
+                        </section>
                       <?php endif; ?>
                     <?php endif; ?>
                     <?php if (is_array($clientDelivery)): ?>
