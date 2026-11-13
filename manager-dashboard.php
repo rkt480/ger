@@ -175,7 +175,7 @@ $clientMonitorStatus = static function (array $client): string {
     <meta name="theme-color" content="#070a10" />
     <title>Monitoramento | Gerente</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261113-manager-test-controls-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261113-manager-test-period-v2" />
   </head>
   <body class="settings-page manager-monitor-page" data-manager-feed-version="<?= htmlspecialchars($managerFeedVersion) ?>" data-manager-user-key="<?= htmlspecialchars($managerUserKey) ?>">
     <div class="app-shell">
@@ -467,12 +467,13 @@ $clientMonitorStatus = static function (array $client): string {
                             <input type="checkbox" name="enabled" value="1" <?= !empty($client['ads_report_schedule_enabled']) ? 'checked' : '' ?> />
                             Ativar envio para o gestor vinculado
                           </label>
-                          <label for="manager-ads-frequency-<?= $clientId ?>">Frequência</label>
+                          <label for="manager-ads-frequency-<?= $clientId ?>">Período dos dados e quando enviar</label>
                           <select id="manager-ads-frequency-<?= $clientId ?>" name="frequency">
-                            <option value="daily" <?= (string) ($client['ads_report_schedule_frequency'] ?? 'weekly') === 'daily' ? 'selected' : '' ?>>Diário — dia anterior</option>
-                            <option value="weekly" <?= (string) ($client['ads_report_schedule_frequency'] ?? 'weekly') === 'weekly' ? 'selected' : '' ?>>Semanal — últimos 7 dias encerrados</option>
-                            <option value="monthly" <?= (string) ($client['ads_report_schedule_frequency'] ?? 'weekly') === 'monthly' ? 'selected' : '' ?>>Mensal — mês anterior</option>
+                            <option value="daily" <?= (string) ($client['ads_report_schedule_frequency'] ?? 'weekly') === 'daily' ? 'selected' : '' ?>>Dados de ontem · enviar todos os dias</option>
+                            <option value="weekly" <?= (string) ($client['ads_report_schedule_frequency'] ?? 'weekly') === 'weekly' ? 'selected' : '' ?>>Dados dos últimos 7 dias · enviar toda semana</option>
+                            <option value="monthly" <?= (string) ($client['ads_report_schedule_frequency'] ?? 'weekly') === 'monthly' ? 'selected' : '' ?>>Dados do mês anterior · enviar todo mês</option>
                           </select>
+                          <small>No envio diário ou semanal, os dados terminam no dia anterior. No mensal, o relatório usa o mês anterior completo. Os dias abaixo só se aplicam às opções semanal e mensal.</small>
                           <label for="manager-ads-weekday-<?= $clientId ?>">Dia da semana (para envio semanal)</label>
                           <select id="manager-ads-weekday-<?= $clientId ?>" name="weekday">
                             <?php foreach ([1 => 'Segunda-feira', 2 => 'Terça-feira', 3 => 'Quarta-feira', 4 => 'Quinta-feira', 5 => 'Sexta-feira', 6 => 'Sábado', 7 => 'Domingo'] as $weekdayValue => $weekdayLabel): ?>
@@ -497,7 +498,7 @@ $clientMonitorStatus = static function (array $client): string {
                             <strong>Envio de teste</strong>
                             <span class="manager-ad-test-badge <?= !empty($client['ads_report_test_enabled']) ? 'is-active' : '' ?>"><?= !empty($client['ads_report_test_enabled']) ? 'Ativo' : 'Desativado' ?></span>
                           </div>
-                          <p>Envie o último relatório gerado ao gestor. A programação automática continua como está.</p>
+                          <p>Atualiza as métricas do período escolhido e envia ao gestor. A programação automática continua como está.</p>
                           <div class="manager-ad-test-actions">
                             <form method="post" action="manager-ads-test-send.php">
                               <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
@@ -508,12 +509,19 @@ $clientMonitorStatus = static function (array $client): string {
                             <form method="post" action="manager-ads-test-send.php">
                               <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
                               <input type="hidden" name="client_id" value="<?= $clientId ?>" />
+                              <label for="manager-ads-test-period-<?= $clientId ?>">Período do teste</label>
+                              <select id="manager-ads-test-period-<?= $clientId ?>" name="period">
+                                <option value="last7">Últimos 7 dias</option>
+                                <option value="yesterday">Ontem</option>
+                                <option value="month_to_date">Mês atual até ontem</option>
+                                <option value="previous_month">Mês anterior</option>
+                              </select>
                               <button class="manager-ad-test-primary" type="submit" name="action" value="send">Enviar teste agora</button>
                             </form>
                             <?php endif; ?>
                           </div>
                           <?php if (is_array($adsTestFeedback) && (int) ($adsTestFeedback['client_id'] ?? 0) === $clientId): ?>
-                            <?php $testMessages = ['enabled' => 'Testes ativados.', 'disabled' => 'Testes desativados.', 'sent' => 'Relatório de teste enviado ao gestor.', 'no_report' => 'Gere um relatório antes de testar o envio.', 'failed' => 'Falha no envio de teste. Confira o provedor de WhatsApp.', 'invalid' => 'Não foi possível executar o teste.']; ?>
+                            <?php $testMessages = ['enabled' => 'Testes ativados.', 'disabled' => 'Testes desativados.', 'sent' => 'Relatório de teste enviado ao gestor.', 'failed' => 'Falha no envio de teste.', 'invalid' => 'Não foi possível executar o teste.']; ?>
                             <?php if (isset($testMessages[(string) ($adsTestFeedback['status'] ?? '')])): ?><small class="manager-ad-test-feedback" role="status"><?= htmlspecialchars($testMessages[(string) $adsTestFeedback['status']]) ?><?= trim((string) ($adsTestFeedback['detail'] ?? '')) !== '' ? ' ' . htmlspecialchars((string) $adsTestFeedback['detail']) : '' ?></small><?php endif; ?>
                           <?php endif; ?>
                         </section>

@@ -12312,6 +12312,22 @@ html[data-theme="light"] body:not(.auth-page) .manager-alert-item header span {
   margin: 0;
 }
 
+.manager-monitor-page .manager-ad-test-actions label {
+  display: block;
+  margin-bottom: 5px;
+  color: #64748b;
+  font-size: 0.63rem;
+  font-weight: 750;
+}
+
+.manager-monitor-page .manager-ad-test-actions select {
+  width: 100%;
+  min-height: 38px;
+  margin-bottom: 9px;
+  padding: 7px 9px;
+  font-size: 0.69rem;
+}
+
 .manager-monitor-page .manager-ad-test-actions button {
   display: block;
   width: 100%;

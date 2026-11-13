@@ -18,6 +18,7 @@ crm_require_valid_csrf();
 $clientId = filter_var($_POST['client_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 $clientId = is_int($clientId) ? $clientId : 0;
 $action = is_scalar($_POST['action'] ?? null) ? (string) $_POST['action'] : '';
+$periodChoice = is_scalar($_POST['period'] ?? null) ? (string) $_POST['period'] : 'last7';
 $status = 'invalid';
 $detail = '';
 
@@ -38,30 +39,26 @@ try {
         $update->execute(['enabled' => $enabled, 'id' => $clientId]);
         $status = $enabled ? 'enabled' : 'disabled';
     } elseif ($action === 'send' && (int) $client['ads_report_test_enabled'] === 1) {
-        $latest = $pdo->prepare('SELECT date_from, date_to FROM manager_campaign_reports WHERE client_id = :client_id ORDER BY updated_at DESC, id DESC LIMIT 1');
-        $latest->execute(['client_id' => $clientId]);
-        $period = $latest->fetch(PDO::FETCH_ASSOC);
+        [$dateFrom, $dateTo] = crm_manager_ads_selected_period($periodChoice);
+        set_time_limit(240);
+        $sync = crm_manager_ads_sync_client($pdo, $clientId, $dateFrom, $dateTo);
+        if ((int) ($sync['accounts_failed'] ?? 0) > 0) {
+            throw new RuntimeException('Algumas contas não puderam ser atualizadas: ' . implode(' · ', $sync['errors'] ?? []));
+        }
+        $pdo = crm_db();
+        $report = ['metrics' => crm_manager_ads_read_metrics($pdo, $clientId, $dateFrom, $dateTo)];
+        $result = crm_manager_ads_send_scheduled_report($pdo, $client, $report, $dateFrom, $dateTo, true);
+        $status = !empty($result['sent']) ? 'sent' : 'failed';
 
-        if (!is_array($period)) {
-            $status = 'no_report';
-        } else {
-            $dateFrom = (string) $period['date_from'];
-            $dateTo = (string) $period['date_to'];
-            $report = crm_manager_ads_read_saved_report($pdo, $clientId, $dateFrom, $dateTo);
-            $result = $report === null
-                ? ['sent' => false, 'error' => 'Relatório não encontrado.']
-                : crm_manager_ads_send_scheduled_report($pdo, $client, $report, $dateFrom, $dateTo, true);
-            $status = !empty($result['sent']) ? 'sent' : 'failed';
-
-            if ($status === 'failed') {
-                $detail = crm_manager_monitor_limit((string) ($result['error'] ?? 'O provedor não confirmou o envio.'), 300);
-                error_log('Falha no envio de teste do relatório de anúncios para o cliente ' . $clientId . ': ' . (string) ($result['error'] ?? 'erro desconhecido'));
-            }
+        if ($status === 'failed') {
+            $detail = crm_manager_monitor_limit((string) ($result['error'] ?? 'O provedor não confirmou o envio.'), 300);
+            error_log('Falha no envio de teste do relatório de anúncios para o cliente ' . $clientId . ': ' . (string) ($result['error'] ?? 'erro desconhecido'));
         }
     }
 } catch (Throwable $error) {
     error_log('Erro no envio de teste do relatório de anúncios para o cliente ' . $clientId . ': ' . $error->getMessage());
     $status = 'failed';
+    $detail = crm_manager_monitor_limit($error->getMessage(), 300);
 }
 
 $_SESSION['manager_ads_test_feedback'] = ['client_id' => $clientId, 'status' => $status, 'detail' => $detail];

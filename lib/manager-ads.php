@@ -161,6 +161,22 @@ function crm_manager_ads_date_range(string $dateFrom, string $dateTo): array
     return [$dateFrom, $dateTo];
 }
 
+function crm_manager_ads_selected_period(string $period, ?DateTimeImmutable $today = null): array
+{
+    $today ??= new DateTimeImmutable('today');
+    $yesterday = $today->modify('-1 day');
+
+    return match ($period) {
+        'yesterday' => [$yesterday->format('Y-m-d'), $yesterday->format('Y-m-d')],
+        'last7' => [$yesterday->modify('-6 days')->format('Y-m-d'), $yesterday->format('Y-m-d')],
+        'month_to_date' => $yesterday->format('Y-m') === $today->format('Y-m')
+            ? [$today->modify('first day of this month')->format('Y-m-d'), $yesterday->format('Y-m-d')]
+            : throw new InvalidArgumentException('Ainda não há dias encerrados no mês atual.'),
+        'previous_month' => [$today->modify('first day of last month')->format('Y-m-d'), $today->modify('last day of last month')->format('Y-m-d')],
+        default => throw new InvalidArgumentException('Selecione um período de relatório válido.'),
+    };
+}
+
 function crm_manager_ads_account_ids(string $raw): array
 {
     $ids = preg_split('/[,;\s]+/', trim($raw)) ?: [];
@@ -274,6 +290,21 @@ function crm_manager_ads_fetch_meta(string $accountId, string $dateFrom, string 
     $rows = [];
     $after = '';
     $objectives = [];
+    $accountName = '';
+
+    try {
+        $accountQuery = ['fields' => 'name'];
+        if ($appSecret = trim((string) ($settings['meta_ads_app_secret'] ?? ''))) {
+            $accountQuery['appsecret_proof'] = hash_hmac('sha256', $accessToken, $appSecret);
+        }
+        $accountResponse = crm_manager_ads_http(
+            'https://graph.facebook.com/v' . $version . '/act_' . rawurlencode($accountId) . '?' . http_build_query($accountQuery, '', '&', PHP_QUERY_RFC3986),
+            ['Authorization: Bearer ' . $accessToken]
+        );
+        $accountName = crm_manager_monitor_limit((string) ($accountResponse['name'] ?? ''), 255);
+    } catch (Throwable $error) {
+        error_log('Nome da conta Meta indisponível: ' . $error->getMessage());
+    }
 
     try {
         $campaignAfter = '';
@@ -323,7 +354,7 @@ function crm_manager_ads_fetch_meta(string $accountId, string $dateFrom, string 
 
         foreach (($response['data'] ?? []) as $row) {
             if (is_array($row)) {
-                $rows[] = crm_manager_ads_normalize_meta_row($row, $accountId, $objectives[(string) ($row['campaign_id'] ?? '')] ?? '');
+                $rows[] = crm_manager_ads_normalize_meta_row($row, $accountId, $objectives[(string) ($row['campaign_id'] ?? '')] ?? '', $accountName);
             }
         }
 
@@ -386,12 +417,12 @@ function crm_manager_ads_meta_result(array $row, string $objective): array
     return [$type, $type === 'reach' ? (float) ($row['reach'] ?? 0) : null];
 }
 
-function crm_manager_ads_normalize_meta_row(array $row, string $accountId, string $objective = ''): array
+function crm_manager_ads_normalize_meta_row(array $row, string $accountId, string $objective = '', string $accountName = ''): array
 {
     [$resultType, $resultCount] = crm_manager_ads_meta_result($row, $objective);
     return [
         'account_id' => $accountId,
-        'account_name' => crm_manager_monitor_limit((string) ($row['account_name'] ?? ''), 255),
+        'account_name' => crm_manager_monitor_limit($accountName !== '' ? $accountName : (string) ($row['account_name'] ?? ''), 255),
         'campaign_id' => (string) ($row['campaign_id'] ?? ''),
         'campaign_name' => crm_manager_monitor_limit((string) ($row['campaign_name'] ?? 'Campanha sem nome'), 255),
         'result_type' => $resultType,
