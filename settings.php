@@ -640,7 +640,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       Prompt do agente gerencial
                       <textarea name="manager_agent_prompt" rows="8" maxlength="16000" placeholder="Adicione depois os critérios para reuniões, relatórios, alertas e recomendações de campanha..." spellcheck="true"><?= htmlspecialchars($managerAgentPrompt) ?></textarea>
                     </label>
-                    <small class="settings-help">As análises de grupos, o acompanhamento diário por gestor e as campanhas consideram estas instruções. Defina aqui critérios de reuniões e relatórios, o que deve virar sugestão ou cobrança e quando o agente pode enviar WhatsApp. Sem prompt configurado, a rotina diária não envia mensagens.</small>
+                    <small class="settings-help">As análises de grupos, o acompanhamento diário por gestor e as campanhas consideram estas instruções. Defina aqui critérios de reuniões e relatórios, o que deve virar sugestão ou cobrança e quando o agente pode enviar WhatsApp. O relatório de campanhas enviado ao gestor usa um formato próprio por campanha e tipo de resultado. Sem prompt configurado, a rotina diária não envia mensagens.</small>
                   </div>
 
                   <small class="settings-help field-wide">Tokens e segredos são criptografados no servidor e nunca são exibidos novamente no formulário. Deixe o campo vazio para manter a credencial já salva.</small>

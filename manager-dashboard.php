@@ -487,7 +487,7 @@ $clientMonitorStatus = static function (array $client): string {
                           </select>
                           <label for="manager-ads-time-<?= $clientId ?>">Horário</label>
                           <input id="manager-ads-time-<?= $clientId ?>" type="time" name="time" value="<?= htmlspecialchars(substr((string) ($client['ads_report_schedule_time'] ?? '08:00:00'), 0, 5)) ?>" required />
-                          <small>O horário segue o fuso configurado no CRM. O relatório em texto inclui resumo, destaques e pontos de atenção gerados conforme o prompt do agente. O gestor precisa ter um WhatsApp válido cadastrado e o provedor conectado.</small>
+                          <small>O horário segue o fuso configurado no CRM. O WhatsApp lista cada campanha com o resultado adequado ao objetivo, custo por resultado e investimento. O gestor precisa ter um WhatsApp válido cadastrado e o provedor conectado.</small>
                           <button type="submit">Salvar programação</button>
                         </form>
                       </details>
