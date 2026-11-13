@@ -8661,6 +8661,35 @@ html[data-theme="light"] .manager-delivery-card strong {
   font-size: 0.65rem;
 }
 
+.manager-ad-test-send {
+  display: grid;
+  gap: 7px;
+  margin: 0 0 12px;
+  padding: 10px;
+  border: 1px solid rgba(154, 169, 197, 0.18);
+  border-radius: 10px;
+}
+
+.manager-ad-test-send strong {
+  font-size: 0.68rem;
+}
+
+.manager-ad-test-send small {
+  color: #8795aa;
+  font-size: 0.61rem;
+  line-height: 1.45;
+}
+
+.manager-ad-test-send form {
+  margin: 0;
+}
+
+.manager-ad-test-send button {
+  min-height: 31px;
+  padding: 5px 9px;
+  font-size: 0.65rem;
+}
+
 .manager-ads-delivery-status {
   display: block;
   margin: -2px 0 8px;

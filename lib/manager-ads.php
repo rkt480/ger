@@ -1120,7 +1120,7 @@ function crm_manager_ads_finish_scheduled_delivery(PDO $pdo, int $clientId, stri
     ]);
 }
 
-function crm_manager_ads_send_scheduled_report(PDO $pdo, array $client, array $report, string $dateFrom, string $dateTo): array
+function crm_manager_ads_send_scheduled_report(PDO $pdo, array $client, array $report, string $dateFrom, string $dateTo, bool $test = false): array
 {
     $managerId = (int) ($client['manager_user_id'] ?? 0);
 
@@ -1136,7 +1136,8 @@ function crm_manager_ads_send_scheduled_report(PDO $pdo, array $client, array $r
         return ['sent' => false, 'error' => 'Gestor sem número de WhatsApp válido.'];
     }
 
-    $message = '📊 Relatório de campanhas — ' . crm_manager_monitor_limit((string) ($client['name'] ?? 'Cliente'), 120) . "\n"
+    $message = ($test ? "🧪 TESTE DE ENVIO\n" : '')
+        . '📊 Relatório de campanhas — ' . crm_manager_monitor_limit((string) ($client['name'] ?? 'Cliente'), 120) . "\n"
         . 'Período: ' . $dateFrom . ' a ' . $dateTo . "\n\n"
         . "Resumo\n" . crm_manager_monitor_limit((string) ($report['summary'] ?? ''), 900) . "\n\n"
         . "Destaques\n";

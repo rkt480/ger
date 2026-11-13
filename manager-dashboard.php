@@ -70,6 +70,8 @@ foreach ($groups as $group) {
 
 $saved = (string) ($_GET['saved'] ?? '');
 $error = (string) ($_GET['error'] ?? '');
+$adsTestFeedback = $_SESSION['manager_ads_test_feedback'] ?? null;
+unset($_SESSION['manager_ads_test_feedback']);
 $flashMessages = [
     'client' => 'Cliente cadastrado. Agora você pode vincular os grupos recebidos.',
     'client_group' => 'Cliente cadastrado e grupo vinculado com sucesso.',
@@ -489,6 +491,28 @@ $clientMonitorStatus = static function (array $client): string {
                           <button type="submit">Salvar programação</button>
                         </form>
                       </details>
+                      <?php if ($isAdmin): ?>
+                        <div class="manager-ad-test-send">
+                          <strong>Envio de teste</strong>
+                          <small>Usa o último relatório gerado e envia ao gestor vinculado. Não altera a programação nem o registro do envio automático.</small>
+                          <form method="post" action="manager-ads-test-send.php">
+                            <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
+                            <input type="hidden" name="client_id" value="<?= $clientId ?>" />
+                            <button type="submit" name="action" value="<?= !empty($client['ads_report_test_enabled']) ? 'disable' : 'enable' ?>"><?= !empty($client['ads_report_test_enabled']) ? 'Desativar testes' : 'Ativar testes' ?></button>
+                          </form>
+                          <?php if (!empty($client['ads_report_test_enabled'])): ?>
+                            <form method="post" action="manager-ads-test-send.php">
+                              <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(crm_csrf_token()) ?>" />
+                              <input type="hidden" name="client_id" value="<?= $clientId ?>" />
+                              <button type="submit" name="action" value="send">Enviar relatório de teste agora</button>
+                            </form>
+                          <?php endif; ?>
+                          <?php if (is_array($adsTestFeedback) && (int) ($adsTestFeedback['client_id'] ?? 0) === $clientId): ?>
+                            <?php $testMessages = ['enabled' => 'Testes ativados.', 'disabled' => 'Testes desativados.', 'sent' => 'Relatório de teste enviado ao gestor.', 'no_report' => 'Gere um relatório antes de testar o envio.', 'failed' => 'Falha no envio de teste. Confira o provedor de WhatsApp.', 'invalid' => 'Não foi possível executar o teste.']; ?>
+                            <?php if (isset($testMessages[(string) ($adsTestFeedback['status'] ?? '')])): ?><small role="status"><?= htmlspecialchars($testMessages[(string) $adsTestFeedback['status']]) ?><?= trim((string) ($adsTestFeedback['detail'] ?? '')) !== '' ? ' ' . htmlspecialchars((string) $adsTestFeedback['detail']) : '' ?></small><?php endif; ?>
+                          <?php endif; ?>
+                        </div>
+                      <?php endif; ?>
                     <?php endif; ?>
                     <?php if (is_array($clientDelivery)): ?>
                       <?php if ((string) ($clientDelivery['status'] ?? '') === 'sent'): ?>
