@@ -8,7 +8,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once __DIR__ . '/lib/storage.php';
-require_once __DIR__ . '/lib/manager-ads.php';
+require_once __DIR__ . '/lib/manager-ads-comparison.php';
 
 set_time_limit(0);
 
@@ -38,7 +38,9 @@ try {
         }
 
         try {
-            $results[] = crm_manager_ads_run_client_report(crm_db(), $clientId, $dateFrom, $dateTo, true);
+            $comparison = crm_manager_ads_build_comparison(crm_db(), $clientId, $dateTo, true);
+            $results[] = crm_manager_ads_run_client_report(crm_db(), $clientId, $dateFrom, $dateTo, false);
+            $results[count($results) - 1]['comparison'] = $comparison;
 
             if ($monthReportDue) {
                 $results[] = crm_manager_ads_run_client_report(crm_db(), $clientId, $monthFrom, $monthTo, true);

@@ -148,3 +148,21 @@ clientes ativos atribuídos.
 As mensagens de grupo ficam separadas dos leads comerciais. Assim, o
 remetente de uma mensagem de grupo não é criado como um contato individual no
 CRM; contatos individuais continuam seguindo o fluxo comercial original.
+
+### Acompanhamento de respostas e comparativo de campanhas
+
+O worker `run-manager-response-monitor.php` registra um resumo diário por grupo e
+notifica o gestor cadastrado quando uma mensagem recebida fica sem resposta dele
+por 2 horas úteis (segunda a sexta, 9h às 18h, horário de São Paulo). Para
+reconhecer a resposta, o telefone do remetente deve corresponder ao WhatsApp
+do gestor cadastrado. Mensagens recebidas de outros participantes são tratadas
+como mensagens do cliente; grupos com equipe adicional precisam de classificação
+de participantes antes de usar essa regra. Execute a cada 5 minutos:
+
+```cron
+*/5 * * * * /Applications/XAMPP/xamppfiles/bin/php /Applications/XAMPP/xamppfiles/htdocs/gerente/run-manager-response-monitor.php >/dev/null 2>&1
+```
+
+O worker diário de anúncios sincroniza 28 dias e grava o comparativo acumulado
+de 7, 14 e 28 dias e as alterações de conta disponibilizadas pelas APIs. O painel
+mostra limitações de consulta e não atribui alterações ao gestor.

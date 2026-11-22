@@ -8,7 +8,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once __DIR__ . '/lib/storage.php';
-require_once __DIR__ . '/lib/manager-ads.php';
+require_once __DIR__ . '/lib/manager-ads-comparison.php';
 
 set_time_limit(0);
 
@@ -133,6 +133,8 @@ try {
                 $report = $run['report'];
             }
 
+            $comparison = crm_manager_ads_build_comparison(crm_db(), $clientId, $dateTo, true);
+            $report['comparison'] = $comparison;
             $delivery = crm_manager_ads_send_scheduled_report(crm_db(), $client, $report, $dateFrom, $dateTo);
             crm_manager_ads_finish_scheduled_delivery(crm_db(), $clientId, $occurrenceDate, $delivery['sent'], (string) ($delivery['error'] ?? ''));
             $results[] = [

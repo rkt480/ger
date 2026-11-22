@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/storage.php';
-require_once __DIR__ . '/lib/manager-ads.php';
+require_once __DIR__ . '/lib/manager-ads-comparison.php';
 
 crm_require_sales_manager();
 
@@ -16,6 +16,13 @@ $currentUserName = $currentUserName !== '' ? $currentUserName : 'gestor';
 $search = trim((string) ($_GET['q'] ?? ''));
 $monitor = crm_manager_monitor_read_dashboard($pdo, $search);
 $adsMonitor = crm_manager_ads_read_dashboard($pdo);
+crm_manager_ads_comparison_schema($pdo);
+$comparisonRows = $pdo->query('SELECT client_id, comparison_json FROM manager_ads_comparisons ORDER BY date_to DESC LIMIT 100')->fetchAll(PDO::FETCH_ASSOC);
+$comparisonsByClient = [];
+foreach ($comparisonRows as $comparisonRow) {
+    $id = (int) $comparisonRow['client_id'];
+    if (!isset($comparisonsByClient[$id])) $comparisonsByClient[$id] = json_decode((string) $comparisonRow['comparison_json'], true);
+}
 $clients = $monitor['clients'];
 $groups = $monitor['groups'];
 $stats = $monitor['stats'];
@@ -612,6 +619,21 @@ $clientMonitorStatus = static function (array $client): string {
                               </summary>
                               <div class="manager-client-operation-content">
                                 <p><?= nl2br(htmlspecialchars((string) ($report['report_summary'] ?? ''))) ?></p>
+                                <?php $comparison = $comparisonsByClient[(int) $report['client_id']] ?? null; ?>
+                                <?php if (is_array($comparison) && ($comparison['date_to'] ?? '') === ($report['date_to'] ?? '')): ?>
+                                  <details class="manager-operation-evidence"><summary>Comparativo 7 · 14 · 28 dias</summary>
+                                    <?php if (!empty($comparison['ai_summary'])): ?><p><?= nl2br(htmlspecialchars((string) $comparison['ai_summary'])) ?></p><?php endif; ?>
+                                    <ul><?php foreach (array_slice($comparison['campaigns'] ?? [], 0, 30) as $comp): ?>
+                                      <li><strong><?= htmlspecialchars((string) ($comp['campaign_name'] ?? 'Campanha')) ?></strong>
+                                      <span><?= htmlspecialchars(strtoupper((string) ($comp['platform'] ?? ''))) ?> · <?= htmlspecialchars((string) ($comp['currency'] ?? '')) ?></span>
+                                      <?php foreach ([7, 14, 28] as $days): $period = $comp['periods'][$days] ?? null; ?>
+                                        <small><?= $days ?> dias: <?= is_array($period) ? htmlspecialchars($formatMetricNumber($period['spend'] ?? null, 2)) . ' investidos · ' . (int) ($period['clicks'] ?? 0) . ' cliques · ' . htmlspecialchars($formatMetricNumber($period['results'] ?? null, 2)) . ' resultados' : 'sem dados' ?></small>
+                                      <?php endforeach; ?>
+                                      <?php if (!empty($comp['changes'])): ?><small><?= count($comp['changes']) ?> alteração(ões) no histórico · autor não confirmado</small><?php endif; ?>
+                                      </li><?php endforeach; ?></ul>
+                                    <?php if (!empty($comparison['history_status'])): ?><p>Histórico parcial: <?= htmlspecialchars(implode(' · ', (array) $comparison['history_status'])) ?></p><?php endif; ?>
+                                  </details>
+                                <?php endif; ?>
                                 <?php if ($reportHighlights !== []): ?><ul class="manager-operation-highlights"><?php foreach (array_slice($reportHighlights, 0, 4) as $highlight): ?><li><?= htmlspecialchars((string) $highlight) ?></li><?php endforeach; ?></ul><?php endif; ?>
                                 <?php if ($reportCampaigns !== []): ?>
                                   <details class="manager-operation-evidence">

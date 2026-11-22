@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/storage.php';
+require_once __DIR__ . '/lib/manager-response-monitor.php';
 
 crm_require_sales_manager();
 
@@ -22,6 +23,10 @@ if ($group === null) {
     exit('Grupo não encontrado.');
 }
 
+crm_manager_response_schema($pdo);
+$dailyQuery = $pdo->prepare('SELECT summary, summary_date, pending_count FROM manager_group_daily_summaries WHERE group_id = :group_id ORDER BY summary_date DESC LIMIT 1');
+$dailyQuery->execute(['group_id' => $groupId]);
+$dailySummary = $dailyQuery->fetch(PDO::FETCH_ASSOC);
 $messages = crm_manager_monitor_read_group_messages($pdo, $groupId);
 $alerts = crm_manager_monitor_read_group_alerts($pdo, $groupId);
 $latestAnalysis = crm_manager_monitor_read_latest_group_analysis($pdo, $groupId);
@@ -196,6 +201,7 @@ $analysisStatusLabel = $pendingAnalysisCount > 0
 
           <div class="manager-detail-grid">
             <section class="manager-conversation-card" aria-labelledby="conversation-title">
+              <?php if (is_array($dailySummary)): ?><p><strong>Resumo do dia <?= htmlspecialchars((string) $dailySummary['summary_date']) ?>:</strong> <?= htmlspecialchars((string) $dailySummary['summary']) ?></p><?php endif; ?>
               <header class="manager-detail-card-header">
                 <div><p class="eyebrow">WhatsApp</p><h2 id="conversation-title">Conversas recentes</h2></div>
                 <span><?= count($messages) ?> registro<?= count($messages) === 1 ? '' : 's' ?></span>

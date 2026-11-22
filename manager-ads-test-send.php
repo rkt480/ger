@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/storage.php';
-require_once __DIR__ . '/lib/manager-ads.php';
+require_once __DIR__ . '/lib/manager-ads-comparison.php';
 
 crm_require_admin();
 
@@ -41,12 +41,12 @@ try {
     } elseif ($action === 'send' && (int) $client['ads_report_test_enabled'] === 1) {
         [$dateFrom, $dateTo] = crm_manager_ads_selected_period($periodChoice);
         set_time_limit(240);
-        $sync = crm_manager_ads_sync_client($pdo, $clientId, $dateFrom, $dateTo);
-        if ((int) ($sync['accounts_failed'] ?? 0) > 0) {
-            throw new RuntimeException('Algumas contas não puderam ser atualizadas: ' . implode(' · ', $sync['errors'] ?? []));
-        }
+        $comparison = crm_manager_ads_build_comparison($pdo, $clientId, $dateTo, true);
         $pdo = crm_db();
-        $report = ['metrics' => crm_manager_ads_read_metrics($pdo, $clientId, $dateFrom, $dateTo)];
+        $report = [
+            'metrics' => crm_manager_ads_read_metrics($pdo, $clientId, $dateFrom, $dateTo),
+            'comparison' => $comparison,
+        ];
         $result = crm_manager_ads_send_scheduled_report($pdo, $client, $report, $dateFrom, $dateTo, true);
         $status = !empty($result['sent']) ? 'sent' : 'failed';
 

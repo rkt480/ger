@@ -1306,6 +1306,10 @@ function crm_manager_ads_whatsapp_messages(array $report, string $dateFrom, stri
 
     if ($campaigns === []) $current .= "\nNenhuma campanha com impressões e alcance válidos no período " . $period . '.';
     $messages[] = trim($current);
+    $comparison = $report['comparison'] ?? null;
+    if (is_array($comparison)) {
+        $messages[] = crm_manager_ads_comparison_message($comparison);
+    }
     return $messages;
 }
 
