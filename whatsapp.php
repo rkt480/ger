@@ -1563,7 +1563,7 @@ if ($isWaConversationFragment) {
         <button type="button" class="<?= !is_array($activeLead) && !is_array($activeGroup) ? 'is-active' : '' ?>" data-wa-mobile-view="inbox">Conversas</button>
         <button type="button" class="<?= is_array($activeLead) || is_array($activeGroup) ? 'is-active' : '' ?>" data-wa-mobile-view="thread">Atendimento</button>
         <button type="button" data-wa-mobile-view="lead">Dados do lead</button>
-        <a href="index.php?view=kanban" aria-label="Abrir Início" data-no-navigation-prefetch>Início</a>
+        <a href="index.php?view=kanban" aria-label="Abrir Kanban" data-no-navigation-prefetch>Kanban</a>
       </nav>
 
       <aside class="wa-inbox" aria-label="Lista de conversas">
