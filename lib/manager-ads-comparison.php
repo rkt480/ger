@@ -171,9 +171,13 @@ function crm_manager_ads_build_comparison(PDO $pdo, int $clientId, string $dateT
 function crm_manager_ads_comparison_message(array $comparison): string
 {
     $summary = trim((string) ($comparison['ai_summary'] ?? ''));
+    $end = DateTimeImmutable::createFromFormat('!Y-m-d', (string) ($comparison['date_to'] ?? ''));
+    $currentPeriod = $end ? $end->modify('-6 days')->format('d/m') . ' a ' . $end->format('d/m') : 'últimos 7 dias';
+    $previousPeriod = $end ? $end->modify('-13 days')->format('d/m') . ' a ' . $end->modify('-7 days')->format('d/m') : '7 dias anteriores';
+    $heading = "📈 Resumo comparativo\n" . $currentPeriod . ' x ' . $previousPeriod . "\n";
     if ($summary === '') {
         $weekly = (array) ($comparison['weekly'] ?? []);
-        if ($weekly === []) return "📈 Última semana x semana anterior\nDados insuficientes para comparar as campanhas.";
+        if ($weekly === []) return $heading . 'Dados insuficientes para comparar as campanhas.';
         usort($weekly, static fn(array $a, array $b): int => (float) ($b['current']['spend'] ?? 0) <=> (float) ($a['current']['spend'] ?? 0));
         $campaign = $weekly[0];
         $current = (array) ($campaign['current'] ?? []);
@@ -188,5 +192,5 @@ function crm_manager_ads_comparison_message(array $comparison): string
             . number_format((float) ($previous['spend'] ?? 0), 2, ',', '.') . '. ';
         if (count($weekly) > 1) $summary .= 'Destaque da campanha com maior investimento nesta semana.';
     }
-    return crm_manager_monitor_limit("📈 Última semana x semana anterior\n" . $summary, 650);
+    return crm_manager_monitor_limit($heading . $summary, 700);
 }

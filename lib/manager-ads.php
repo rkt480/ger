@@ -1252,10 +1252,6 @@ function crm_manager_ads_finish_scheduled_delivery(PDO $pdo, int $clientId, stri
 
 function crm_manager_ads_whatsapp_messages(array $report, string $dateFrom, string $dateTo, bool $test = false): array
 {
-    if (is_array($report['comparison'] ?? null)) {
-        $prefix = $test ? "🧪 TESTE DE ENVIO\n\n" : '';
-        return [$prefix . crm_manager_ads_comparison_message($report['comparison'])];
-    }
     $period = date('d/m', strtotime($dateFrom)) . ' a ' . date('d/m', strtotime($dateTo));
     $metrics = is_array($report['metrics'] ?? null) ? $report['metrics'] : [];
     $campaigns = array_values(array_filter($metrics, static function ($item): bool {
@@ -1312,7 +1308,14 @@ function crm_manager_ads_whatsapp_messages(array $report, string $dateFrom, stri
     $messages[] = trim($current);
     $comparison = $report['comparison'] ?? null;
     if (is_array($comparison)) {
-        $messages[] = crm_manager_ads_comparison_message($comparison);
+        $summary = crm_manager_ads_comparison_message($comparison);
+        $last = count($messages) - 1;
+        $combined = $messages[$last] . "\n\n" . $summary;
+        if ((function_exists('mb_strlen') ? mb_strlen($combined, 'UTF-8') : strlen($combined)) <= 3900) {
+            $messages[$last] = $combined;
+        } else {
+            $messages[] = $summary;
+        }
     }
     return $messages;
 }

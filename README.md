@@ -165,5 +165,6 @@ de participantes antes de usar essa regra. Execute a cada 5 minutos:
 
 O worker diário de anúncios sincroniza 28 dias e grava o comparativo acumulado
 de 7, 14 e 28 dias e as alterações de conta disponibilizadas pelas APIs. O painel
-mostra o comparativo detalhado; o WhatsApp envia apenas um resumo da última
-semana encerrada contra a semana imediatamente anterior.
+mostra o comparativo detalhado; o WhatsApp mantém o overview e acrescenta
+abaixo um resumo da última semana encerrada contra a semana imediatamente
+anterior, com as datas dos dois períodos.
