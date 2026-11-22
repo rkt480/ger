@@ -1252,6 +1252,10 @@ function crm_manager_ads_finish_scheduled_delivery(PDO $pdo, int $clientId, stri
 
 function crm_manager_ads_whatsapp_messages(array $report, string $dateFrom, string $dateTo, bool $test = false): array
 {
+    if (is_array($report['comparison'] ?? null)) {
+        $prefix = $test ? "🧪 TESTE DE ENVIO\n\n" : '';
+        return [$prefix . crm_manager_ads_comparison_message($report['comparison'])];
+    }
     $period = date('d/m', strtotime($dateFrom)) . ' a ' . date('d/m', strtotime($dateTo));
     $metrics = is_array($report['metrics'] ?? null) ? $report['metrics'] : [];
     $campaigns = array_values(array_filter($metrics, static function ($item): bool {
