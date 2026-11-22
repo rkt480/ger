@@ -1308,13 +1308,14 @@ function crm_manager_ads_whatsapp_messages(array $report, string $dateFrom, stri
     $messages[] = trim($current);
     $comparison = $report['comparison'] ?? null;
     if (is_array($comparison)) {
-        $summary = crm_manager_ads_comparison_message($comparison);
-        $last = count($messages) - 1;
-        $combined = $messages[$last] . "\n\n" . $summary;
-        if ((function_exists('mb_strlen') ? mb_strlen($combined, 'UTF-8') : strlen($combined)) <= 3900) {
-            $messages[$last] = $combined;
-        } else {
-            $messages[] = $summary;
+        foreach (crm_manager_ads_comparison_messages($comparison) as $summary) {
+            $last = count($messages) - 1;
+            $combined = $messages[$last] . "\n\n" . $summary;
+            if ((function_exists('mb_strlen') ? mb_strlen($combined, 'UTF-8') : strlen($combined)) <= 3900) {
+                $messages[$last] = $combined;
+            } else {
+                $messages[] = $summary;
+            }
         }
     }
     return $messages;
