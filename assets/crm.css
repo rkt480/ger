@@ -12363,3 +12363,94 @@ html[data-theme="light"] body:not(.auth-page) .manager-alert-item header span {
   font-size: 0.64rem;
   line-height: 1.45;
 }
+
+/* Unified CRM navigation */
+@media (min-width: 881px) {
+  .app-shell:has(> .crm-sidebar) { grid-template-columns: 72px minmax(0, 1fr); transition: grid-template-columns .2s ease; }
+  .app-shell:has(> .crm-sidebar:hover),
+  .app-shell:has(> .crm-sidebar:focus-within) { grid-template-columns: 220px minmax(0, 1fr); }
+  .whatsapp-crm-page .wa-web-shell:has(> .crm-sidebar) { grid-template-columns: 72px minmax(280px, 320px) minmax(0, 1fr) minmax(230px, 280px); transition: grid-template-columns .2s ease; }
+  .whatsapp-crm-page .wa-web-shell:has(> .crm-sidebar:hover),
+  .whatsapp-crm-page .wa-web-shell:has(> .crm-sidebar:focus-within) { grid-template-columns: 220px minmax(280px, 320px) minmax(0, 1fr) minmax(230px, 280px); }
+}
+@media (min-width: 761px) and (max-width: 1180px) {
+  .whatsapp-crm-page .wa-web-shell:has(> .crm-sidebar) { grid-template-columns: 72px minmax(260px, 310px) minmax(0, 1fr); }
+  .whatsapp-crm-page .wa-web-shell:has(> .crm-sidebar:hover),
+  .whatsapp-crm-page .wa-web-shell:has(> .crm-sidebar:focus-within) { grid-template-columns: 200px minmax(260px, 310px) minmax(0, 1fr); }
+}
+@media (min-width: 761px) and (max-width: 880px) {
+  .whatsapp-crm-page .wa-web-shell:has(> .crm-sidebar) { grid-template-columns: 64px minmax(240px, 290px) minmax(0, 1fr); }
+  .whatsapp-crm-page .wa-web-shell:has(> .crm-sidebar:hover),
+  .whatsapp-crm-page .wa-web-shell:has(> .crm-sidebar:focus-within) { grid-template-columns: 190px minmax(240px, 290px) minmax(0, 1fr); }
+}
+.crm-sidebar {
+  z-index: 45;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  width: 100%;
+  min-width: 0;
+  gap: 8px;
+  padding: 14px 8px;
+  overflow: hidden;
+}
+.crm-sidebar .sidebar-tabs { display: flex; flex-direction: column; width: 100%; gap: 5px; overflow: visible; }
+.crm-sidebar .sidebar-tabs a,
+.crm-sidebar .sidebar-exit { display: flex; width: 100%; min-width: 0; height: 42px; min-height: 42px; align-items: center; justify-content: flex-start; gap: 12px; padding: 0 16px; border-radius: 10px; font-size: .82rem; font-weight: 650; text-align: left; white-space: nowrap; }
+.crm-sidebar .sidebar-tabs a::after { content: none !important; display: none !important; }
+.crm-sidebar .sidebar-tabs a svg,
+.crm-sidebar .sidebar-exit svg { flex: 0 0 20px; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.crm-sidebar .sidebar-exit { background: transparent; border: 1px solid transparent; box-shadow: none; }
+.crm-sidebar .sidebar-exit:hover { background: #e7e7e4; }
+.crm-sidebar .crm-sidebar-label { display: block; overflow: hidden; text-overflow: ellipsis; }
+.crm-sidebar .sidebar-tabs a:focus-visible,
+.crm-sidebar .sidebar-exit:focus-visible,
+.crm-sidebar-toggle:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.crm-sidebar-toggle { display: none; }
+@media (min-width: 761px) {
+  .crm-sidebar:not(:hover):not(:focus-within) .crm-sidebar-label { width: 0; opacity: 0; }
+  .crm-sidebar:hover .crm-sidebar-label,
+  .crm-sidebar:focus-within .crm-sidebar-label { width: auto; opacity: 1; }
+  .crm-sidebar .sidebar-tabs a,
+  .crm-sidebar .sidebar-exit { transition: background-color .15s ease; }
+}
+@media (max-width: 760px) {
+  .app-shell:has(> .crm-sidebar) { grid-template-columns: minmax(0, 1fr); }
+  .crm-sidebar,
+  .whatsapp-crm-page .crm-sidebar,
+  body.whatsapp-crm-page:not(.auth-page) .crm-sidebar {
+    position: sticky; top: 0; z-index: 50; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto;
+    width: 100%; height: auto; min-height: 54px; max-height: calc(100dvh - 12px); gap: 0; margin: 0; padding: 6px 8px; overflow-y: auto;
+  }
+  .crm-sidebar-toggle { display: flex; grid-column: 1; align-items: center; gap: 9px; width: max-content; min-height: 40px; padding: 0 10px; background: transparent; border: 0; color: inherit; font-size: .84rem; font-weight: 700; }
+  .crm-sidebar-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+  .crm-sidebar .sidebar-tabs,
+  .whatsapp-crm-page .crm-sidebar .sidebar-tabs { display: flex; grid-column: 1 / -1; grid-row: 2; flex-direction: row; width: 100%; padding: 8px 0; overflow-x: auto; overflow-y: hidden; }
+  .crm-sidebar:not(.is-open) .sidebar-tabs a,
+  .whatsapp-crm-page .crm-sidebar:not(.is-open) .sidebar-tabs a { flex: 0 0 42px; width: 42px; justify-content: center; padding: 0; }
+  .crm-sidebar:not(.is-open) .crm-sidebar-label { display: none; }
+  .crm-sidebar.is-open .sidebar-tabs,
+  .whatsapp-crm-page .crm-sidebar.is-open .sidebar-tabs { display: flex; flex-direction: column; }
+  .crm-sidebar .sidebar-exit,
+  .whatsapp-crm-page .crm-sidebar .sidebar-exit,
+  body.whatsapp-crm-page:not(.auth-page) .crm-sidebar .sidebar-exit { grid-column: 2; grid-row: 1; width: 42px; min-width: 42px; height: 40px; padding: 0 10px; margin: 0; font-size: .8rem; }
+  .crm-sidebar .sidebar-exit .crm-sidebar-label { display: none; }
+  .crm-sidebar .sidebar-tabs a,
+  .whatsapp-crm-page .crm-sidebar .sidebar-tabs a { width: 100%; justify-content: flex-start; padding: 0 12px; }
+  .crm-sidebar:not(.is-open) .sidebar-tabs a,
+  .whatsapp-crm-page .crm-sidebar:not(.is-open) .sidebar-tabs a { width: 42px; justify-content: center; padding: 0; }
+  .whatsapp-crm-page .wa-web-shell:has(> .crm-sidebar) { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell:has(> .crm-sidebar), .whatsapp-crm-page .wa-web-shell:has(> .crm-sidebar) { transition: none; }
+}
+@media (min-width: 761px) and (max-width: 880px) {
+  .app-shell:has(> .crm-sidebar) { grid-template-columns: 64px minmax(0, 1fr); }
+  .app-shell:has(> .crm-sidebar:hover),
+  .app-shell:has(> .crm-sidebar:focus-within) { grid-template-columns: 190px minmax(0, 1fr); }
+  .app-shell > .crm-sidebar { position: sticky; top: 10px; display: grid; grid-template-rows: 1fr auto; height: calc(100vh - 20px); min-height: 0; flex-direction: initial; align-items: initial; padding: 14px 8px; }
+  .app-shell > .crm-sidebar .sidebar-tabs { flex-direction: column; align-items: stretch; width: 100%; overflow: visible; }
+  .app-shell > .crm-sidebar .sidebar-tabs a { flex: initial; width: 100%; justify-content: flex-start; padding: 0 12px; }
+  .app-shell > .crm-sidebar .sidebar-exit { width: 100%; min-width: 0; justify-content: flex-start; padding: 0 12px; font-size: .82rem; }
+  .app-shell > .crm-sidebar .sidebar-exit span { display: block; }
+  .app-shell > .crm-sidebar:not(:hover):not(:focus-within) .crm-sidebar-label { width: 0; opacity: 0; }
+}

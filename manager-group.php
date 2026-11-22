@@ -120,29 +120,11 @@ $analysisStatusLabel = $pendingAnalysisCount > 0
     <meta name="theme-color" content="#070a10" />
     <title><?= htmlspecialchars($groupName) ?> | Monitoramento</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261104-sidebar-standard-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-unified-v1" />
   </head>
   <body class="settings-page manager-monitor-page manager-group-page">
     <div class="app-shell">
-      <aside class="sidebar" aria-label="Navegação do gerente">
-        <nav class="sidebar-tabs" aria-label="Atalhos do gerente">
-          <a class="active" href="manager-dashboard.php" title="Monitoramento" aria-label="Monitoramento">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v13H4z" /><path d="M7.5 9h9M7.5 12h6M7.5 15h3" /></svg>
-          </a>
-          <a href="whatsapp.php" title="Conversas do WhatsApp" aria-label="Conversas do WhatsApp">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.4 14.8H6.2a4 4 0 0 1-4-4V7.2a4 4 0 0 1 4-4h7.1a4 4 0 0 1 4 4v.6" /><path d="M10.7 8.2h6.2a4 4 0 0 1 4 4v2.7a4 4 0 0 1-4 4h-2.5L11 21v-2.1h-.3a4 4 0 0 1-4-4v-2.7a4 4 0 0 1 4-4Z" /></svg>
-          </a>
-          <a href="dashboard.php" title="Indicadores comerciais" aria-label="Indicadores comerciais">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5" /><path d="M4 19h16" /><path d="M8 16V9" /><path d="M12 16V7" /><path d="M16 16v-5" /></svg>
-          </a>
-          <?php if (crm_current_user_is_admin()): ?>
-            <a href="settings.php" title="Configurações" aria-label="Configurações">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.8 1.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-2.6V20a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1-1.8-1.8.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H6v-2.6h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 1.8-1.8.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.8 1.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v2.6h-.2a1.7 1.7 0 0 0-1.6 1Z" /></svg>
-            </a>
-          <?php endif; ?>
-        </nav>
-        <a class="sidebar-exit" href="logout.php" title="Sair"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></svg><span>Sair</span></a>
-      </aside>
+      <?php require __DIR__ . '/partials/sidebar.php'; ?>
 
       <div class="workspace">
         <header class="topbar">
@@ -263,6 +245,6 @@ $analysisStatusLabel = $pendingAnalysisCount > 0
     </div>
     <script src="./assets/crm.js?v=20260911-coach-v5"></script>
     <script src="./assets/manager-dashboard.js?v=20260912-theme-v5"></script>
-    <script src="./assets/crm-navigation.js?v=20260812-fast-navigation-v3"></script>
+    <script src="./assets/crm-navigation.js?v=20261122-sidebar-unified-v1"></script>
   </body>
 </html>

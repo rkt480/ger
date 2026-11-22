@@ -1553,64 +1553,17 @@ if ($isWaConversationFragment) {
     <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken) ?>" />
     <title>WhatsApp | Gerencial</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261104-sidebar-standard-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-unified-v1" />
   </head>
   <body class="whatsapp-page whatsapp-crm-page" data-wa-initial-view="<?= is_array($activeLead) || is_array($activeGroup) ? 'thread' : 'inbox' ?>" data-wa-mobile-view="<?= is_array($activeLead) || is_array($activeGroup) ? 'thread' : 'inbox' ?>" data-wa-active-lead-id="<?= htmlspecialchars((string) ($activeLead['id'] ?? '')) ?>" data-wa-active-group-id="<?= is_array($activeGroup) ? (int) ($activeGroup['group_id'] ?? 0) : '' ?>" data-wa-incoming-signature="<?= htmlspecialchars(is_array($activeLead) ? crm_whatsapp_incoming_signature($activeLead) : '') ?>" data-wa-lead-feed-version="<?= htmlspecialchars($leadFeedVersion) ?>">
     <main class="wa-web-shell" aria-label="Atendimento WhatsApp do CRM">
-      <aside class="sidebar" aria-label="Navegação do CRM">
-        <nav class="sidebar-tabs" aria-label="Atalhos do CRM">
-          <a class="sidebar-kanban" href="index.php" title="Voltar para o Kanban" aria-label="Voltar para o Kanban" data-no-navigation-prefetch>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="3.5" y="4" width="5" height="16" rx="1.5" />
-              <rect x="9.5" y="4" width="5" height="11" rx="1.5" />
-              <rect x="15.5" y="4" width="5" height="7" rx="1.5" />
-              <path d="M5.5 8h1M5.5 11h1M11.5 8h1M11.5 11h1M17.5 8h1" />
-            </svg>
-          </a>
-          <a class="sidebar-whatsapp active" href="whatsapp.php" title="Conversas do WhatsApp" aria-label="Conversas do WhatsApp">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M7.4 14.8H6.2a4 4 0 0 1-4-4V7.2a4 4 0 0 1 4-4h7.1a4 4 0 0 1 4 4v.6" />
-              <path d="M10.7 8.2h6.2a4 4 0 0 1 4 4v2.7a4 4 0 0 1-4 4h-2.5L11 21v-2.1h-.3a4 4 0 0 1-4-4v-2.7a4 4 0 0 1 4-4Z" />
-            </svg>
-          </a>
-          <?php if ($canManageSettings): ?>
-            <a href="whatsapp-templates.php" title="Templates WhatsApp" aria-label="Templates WhatsApp">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M5 4.5h14v15H5z" />
-                <path d="M8 8h8M8 12h8M8 16h5" />
-              </svg>
-            </a>
-          <?php endif; ?>
-          <?php if ($canManageSales): ?>
-            <a href="dashboard.php" title="Dashboard do gestor" aria-label="Dashboard do gestor">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 19V5" />
-                <path d="M4 19h16" />
-                <path d="M8 16V9" />
-                <path d="M12 16V7" />
-                <path d="M16 16v-5" />
-              </svg>
-            </a>
-          <?php endif; ?>
-          <?php if ($canManageSettings): ?>
-            <a href="commercial.php" title="Área comercial" aria-label="Área comercial">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M8 10.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                <path d="M16 11a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4Z" />
-                <path d="M3.5 19.5v-1.2A4.5 4.5 0 0 1 8 13.8a4.5 4.5 0 0 1 4.5 4.5v1.2" />
-                <path d="M13.4 14.2c.8-.5 1.7-.8 2.6-.8a4.2 4.2 0 0 1 4.2 4.2v1.9" />
-              </svg>
-            </a>
-          <?php endif; ?>
-        </nav>
-        <a class="sidebar-exit" href="logout.php" title="Sair"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></svg><span>Sair</span></a>
-      </aside>
+      <?php require __DIR__ . '/partials/sidebar.php'; ?>
 
       <nav class="wa-mobile-tabs" aria-label="Área do atendimento no celular">
         <button type="button" class="<?= !is_array($activeLead) && !is_array($activeGroup) ? 'is-active' : '' ?>" data-wa-mobile-view="inbox">Conversas</button>
         <button type="button" class="<?= is_array($activeLead) || is_array($activeGroup) ? 'is-active' : '' ?>" data-wa-mobile-view="thread">Atendimento</button>
         <button type="button" data-wa-mobile-view="lead">Dados do lead</button>
-        <a href="index.php" aria-label="Abrir tela de contatos" data-no-navigation-prefetch>Contatos</a>
+        <a href="index.php?view=kanban" aria-label="Abrir Início" data-no-navigation-prefetch>Início</a>
       </nav>
 
       <aside class="wa-inbox" aria-label="Lista de conversas">
@@ -3885,6 +3838,6 @@ if ($isWaConversationFragment) {
       });
     </script>
     <script src="./assets/crm.js?v=20260911-coach-v5"></script>
-    <script src="./assets/crm-navigation.js?v=20260812-fast-navigation-v3"></script>
+    <script src="./assets/crm-navigation.js?v=20261122-sidebar-unified-v1"></script>
   </body>
 </html>

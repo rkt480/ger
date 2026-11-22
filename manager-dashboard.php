@@ -182,29 +182,11 @@ $clientMonitorStatus = static function (array $client): string {
     <meta name="theme-color" content="#070a10" />
     <title>Monitoramento | Gerente</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261113-manager-test-period-v2" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-unified-v1" />
   </head>
   <body class="settings-page manager-monitor-page" data-manager-feed-version="<?= htmlspecialchars($managerFeedVersion) ?>" data-manager-user-key="<?= htmlspecialchars($managerUserKey) ?>">
     <div class="app-shell">
-      <aside class="sidebar" aria-label="Navegação do gerente">
-        <nav class="sidebar-tabs" aria-label="Atalhos do gerente">
-          <a class="active" href="manager-dashboard.php" title="Monitoramento" aria-label="Monitoramento">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v13H4z" /><path d="M7.5 9h9M7.5 12h6M7.5 15h3" /></svg>
-          </a>
-          <a href="whatsapp.php" title="Conversas do WhatsApp" aria-label="Conversas do WhatsApp">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.4 14.8H6.2a4 4 0 0 1-4-4V7.2a4 4 0 0 1 4-4h7.1a4 4 0 0 1 4 4v.6" /><path d="M10.7 8.2h6.2a4 4 0 0 1 4 4v2.7a4 4 0 0 1-4 4h-2.5L11 21v-2.1h-.3a4 4 0 0 1-4-4v-2.7a4 4 0 0 1 4-4Z" /></svg>
-          </a>
-          <a href="dashboard.php" title="Indicadores comerciais" aria-label="Indicadores comerciais">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5" /><path d="M4 19h16" /><path d="M8 16V9" /><path d="M12 16V7" /><path d="M16 16v-5" /></svg>
-          </a>
-          <?php if (crm_current_user_is_admin()): ?>
-            <a href="settings.php" title="Configurações" aria-label="Configurações">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.3 7.3 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42L9.18 5.3c-.59.24-1.14.56-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.64 8.82a.5.5 0 0 0 .12.64l2.03 1.58c-.05.31-.07.63-.07.96s.02.63.07.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.49.38 1.04.7 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.59-.24 1.14-.56 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58Z" /><circle cx="12" cy="12" r="3.25" /></svg>
-            </a>
-          <?php endif; ?>
-        </nav>
-        <a class="sidebar-exit" href="logout.php" title="Sair"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></svg><span>Sair</span></a>
-      </aside>
+      <?php require __DIR__ . '/partials/sidebar.php'; ?>
 
       <div class="workspace">
         <header class="topbar">
@@ -760,6 +742,6 @@ $clientMonitorStatus = static function (array $client): string {
     </div>
     <script src="./assets/crm.js?v=20260911-coach-v5"></script>
     <script src="./assets/manager-dashboard.js?v=20261030-clean-layout-v1"></script>
-    <script src="./assets/crm-navigation.js?v=20260812-fast-navigation-v3"></script>
+    <script src="./assets/crm-navigation.js?v=20261122-sidebar-unified-v1"></script>
   </body>
 </html>

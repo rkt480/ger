@@ -5,6 +5,14 @@
 
   window.__crmNavigationReady = true;
 
+  const sidebar = document.querySelector('.crm-sidebar');
+  const sidebarToggle = sidebar?.querySelector('.crm-sidebar-toggle');
+  sidebarToggle?.addEventListener('click', () => {
+    const expanded = sidebar.classList.toggle('is-open');
+    sidebarToggle.setAttribute('aria-expanded', String(expanded));
+    sidebarToggle.setAttribute('aria-label', expanded ? 'Fechar menu' : 'Abrir menu');
+  });
+
   const overlay = document.createElement("div");
   overlay.className = "crm-navigation-overlay";
   overlay.setAttribute("aria-hidden", "true");
