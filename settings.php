@@ -281,23 +281,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Configurações | CRM</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-unified-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-compact-v2" />
   </head>
   <body class="settings-page">
     <div class="app-shell">
       <?php require __DIR__ . '/partials/sidebar.php'; ?>
 
       <div class="workspace">
-        <header class="topbar">
-          <nav class="topbar-nav" aria-label="Áreas do CRM">
-            <a href="index.php?view=kanban">Início</a>
-            <a href="followups.php">Follow-up</a>
-            <a href="dashboard.php">Dashboard</a>
-            <a href="commercial.php">Equipe</a>
-            <a href="whatsapp-templates.php">Templates</a>
-            <a class="active" href="settings.php">Configurações</a>
-          </nav>
-        </header>
 
         <header class="app-header">
           <div>

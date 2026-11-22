@@ -1553,7 +1553,7 @@ if ($isWaConversationFragment) {
     <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken) ?>" />
     <title>WhatsApp | Gerencial</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-unified-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-compact-v2" />
   </head>
   <body class="whatsapp-page whatsapp-crm-page" data-wa-initial-view="<?= is_array($activeLead) || is_array($activeGroup) ? 'thread' : 'inbox' ?>" data-wa-mobile-view="<?= is_array($activeLead) || is_array($activeGroup) ? 'thread' : 'inbox' ?>" data-wa-active-lead-id="<?= htmlspecialchars((string) ($activeLead['id'] ?? '')) ?>" data-wa-active-group-id="<?= is_array($activeGroup) ? (int) ($activeGroup['group_id'] ?? 0) : '' ?>" data-wa-incoming-signature="<?= htmlspecialchars(is_array($activeLead) ? crm_whatsapp_incoming_signature($activeLead) : '') ?>" data-wa-lead-feed-version="<?= htmlspecialchars($leadFeedVersion) ?>">
     <main class="wa-web-shell" aria-label="Atendimento WhatsApp do CRM">

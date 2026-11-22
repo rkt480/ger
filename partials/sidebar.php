@@ -16,6 +16,8 @@ $sidebarItems = [
     ['commercial.php', 'commercial.php', 'Equipe', '<path d="M8 10.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16 11a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4ZM3.5 19.5v-1.2A4.5 4.5 0 0 1 8 13.8a4.5 4.5 0 0 1 4.5 4.5v1.2M13.4 14.2c.8-.5 1.7-.8 2.6-.8a4.2 4.2 0 0 1 4.2 4.2v1.9"/>', $sidebarIsAdmin],
     ['followups.php', 'followups.php', 'Follow-up', '<path d="M4 5h16v14H4zM8 9h8M8 13h5M16 15l2 2 3-4"/>', $sidebarCanManageSales],
     ['settings.php', 'settings.php', 'Configurações', '<circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M4.9 4.9 7 7m10 10 2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>', $sidebarIsAdmin],
+    ['forms.php', 'forms.php', 'Formulários', '<path d="M5 3.5h14v17H5zM8 8h8M8 12h8M8 16h5"/>', $sidebarIsAdmin],
+    ['support.php', 'support.php', 'Suporte', '<path d="M4 12a8 8 0 0 1 16 0v6h-4v-5h4M4 13h4v5H4v-6M8 20h8"/>', $sidebarIsAdmin],
 ];
 ?>
 <aside class="sidebar crm-sidebar" aria-label="Navegação do CRM">

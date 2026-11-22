@@ -54,29 +54,13 @@ function human_delay(int $minutes): string
     <meta name="csrf-token" content="<?= htmlspecialchars(crm_csrf_token()) ?>" />
     <title>Fluxos de Follow-up | CRM</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-unified-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-compact-v2" />
   </head>
   <body class="followups-page">
     <div class="app-shell">
       <?php require __DIR__ . '/partials/sidebar.php'; ?>
 
       <div class="workspace">
-        <header class="topbar">
-          <nav class="topbar-nav" aria-label="Áreas do CRM">
-            <a href="index.php?view=kanban">Início</a>
-            <a class="active" href="followups.php">Follow-up</a>
-            <a href="dashboard.php">Dashboard</a>
-            <?php if ($canManageSettings): ?>
-              <a href="commercial.php">Equipe</a>
-            <?php endif; ?>
-            <?php if ($canManageTemplates): ?>
-              <a href="whatsapp-templates.php">Templates</a>
-            <?php endif; ?>
-            <?php if ($canManageSettings): ?>
-              <a href="settings.php">Configurações</a>
-            <?php endif; ?>
-          </nav>
-        </header>
 
         <header class="app-header">
           <div>

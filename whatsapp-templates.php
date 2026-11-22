@@ -82,14 +82,13 @@ $bodyVariables = crm_whatsapp_template_variables((string) ($currentTemplate['bod
     <meta name="csrf-token" content="<?= htmlspecialchars(crm_csrf_token()) ?>" />
     <title>Templates WhatsApp | CRM</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-unified-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-compact-v2" />
   </head>
   <body class="wa-templates-page">
     <div class="app-shell">
       <?php require __DIR__ . '/partials/sidebar.php'; ?>
 
       <div class="workspace">
-        <header class="topbar"><nav class="topbar-nav" aria-label="Áreas do CRM"><a href="index.php?view=kanban">Início</a><a href="whatsapp.php">Conversas</a><a class="active" href="whatsapp-templates.php">Templates</a><a href="followups.php">Follow-up</a><a href="settings.php">Configurações</a></nav></header>
         <header class="app-header"><div><p class="eyebrow">WhatsApp oficial</p><h1>Templates de mensagem</h1><p class="page-intro">Crie modelos, envie para aprovação da Meta e use-os quando a janela de 24 horas estiver encerrada.</p></div><a class="primary-action" href="whatsapp-templates.php?id=new">Novo template</a></header>
 
         <main class="wa-templates-layout">

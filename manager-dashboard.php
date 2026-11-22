@@ -182,25 +182,13 @@ $clientMonitorStatus = static function (array $client): string {
     <meta name="theme-color" content="#070a10" />
     <title>Monitoramento | Gerente</title>
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-unified-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-compact-v2" />
   </head>
   <body class="settings-page manager-monitor-page" data-manager-feed-version="<?= htmlspecialchars($managerFeedVersion) ?>" data-manager-user-key="<?= htmlspecialchars($managerUserKey) ?>">
     <div class="app-shell">
       <?php require __DIR__ . '/partials/sidebar.php'; ?>
 
       <div class="workspace">
-        <header class="topbar">
-          <nav class="topbar-nav" aria-label="Áreas do CRM">
-            <a class="active" href="manager-dashboard.php">Monitoramento</a>
-            <a href="whatsapp.php">WhatsApp</a>
-            <a href="index.php?view=kanban">Kanban comercial</a>
-            <a href="dashboard.php">Indicadores</a>
-            <?php if (crm_current_user_is_admin()): ?>
-              <a href="commercial.php?tab=usuarios&role=gestor">Gestores</a>
-              <a href="settings.php">Configurações</a>
-            <?php endif; ?>
-          </nav>
-        </header>
 
         <header class="app-header manager-page-header">
           <div>

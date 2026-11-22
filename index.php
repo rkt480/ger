@@ -149,27 +149,13 @@ foreach ($filteredLeads as $lead) {
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/icon-180.png" />
     <script src="./assets/theme.js?v=20261030-clean-layout-v1"></script>
-    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-unified-v1" />
+    <link rel="stylesheet" href="./assets/crm.css?v=20261122-sidebar-compact-v2" />
   </head>
   <body class="leads-page">
     <div class="app-shell">
       <?php require __DIR__ . '/partials/sidebar.php'; ?>
 
       <div class="workspace">
-        <header class="topbar">
-          <nav class="topbar-nav" aria-label="Áreas do CRM">
-            <a class="active" href="index.php?view=kanban">Início</a>
-            <?php if ($canManageSales): ?>
-              <a href="followups.php">Follow-up</a>
-              <a href="manager-dashboard.php">Dashboard do gestor</a>
-            <?php endif; ?>
-            <?php if ($canManageSettings): ?>
-              <a href="commercial.php">Equipe</a>
-              <a href="whatsapp-templates.php">Templates</a>
-              <a href="settings.php">Configurações</a>
-            <?php endif; ?>
-          </nav>
-        </header>
 
         <header class="app-header">
           <div>

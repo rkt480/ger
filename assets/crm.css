@@ -12454,3 +12454,32 @@ html[data-theme="light"] body:not(.auth-page) .manager-alert-item header span {
   .app-shell > .crm-sidebar .sidebar-exit span { display: block; }
   .app-shell > .crm-sidebar:not(:hover):not(:focus-within) .crm-sidebar-label { width: 0; opacity: 0; }
 }
+
+/* Keep the selected state entirely around the icon in the closed rail. */
+@media (min-width: 761px) {
+  .crm-sidebar:not(:hover):not(:focus-within) .sidebar-tabs { align-items: center; }
+  .crm-sidebar:not(:hover):not(:focus-within) .sidebar-tabs a,
+  .crm-sidebar:not(:hover):not(:focus-within) .sidebar-exit,
+  .whatsapp-crm-page .crm-sidebar:not(:hover):not(:focus-within) .sidebar-tabs a {
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+    margin-inline: auto;
+  }
+  .crm-sidebar:hover .sidebar-tabs,
+  .crm-sidebar:focus-within .sidebar-tabs { align-items: stretch; }
+}
+@media (min-width: 761px) and (max-width: 880px) {
+  .app-shell > .crm-sidebar:not(:hover):not(:focus-within) .sidebar-tabs a,
+  .app-shell > .crm-sidebar:not(:hover):not(:focus-within) .sidebar-exit,
+  .whatsapp-crm-page .crm-sidebar:not(:hover):not(:focus-within) .sidebar-tabs a {
+    width: 40px;
+    min-width: 40px;
+    max-width: 40px;
+  }
+}
